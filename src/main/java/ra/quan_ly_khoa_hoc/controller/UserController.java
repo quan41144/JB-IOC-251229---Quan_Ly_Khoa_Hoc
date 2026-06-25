@@ -50,7 +50,7 @@ public class UserController {
                 userService.createUser(createUserRequest),
                 null,
                 LocalDateTime.now()
-        ), HttpStatus.OK);
+        ), HttpStatus.CREATED);
     }
     @PutMapping("/{user_id}/role")
     public ResponseEntity<ApiResponse<?>> updateUserRole(@Valid @PathVariable Integer user_id, @Valid @RequestBody UpdateUserRoleRequest role, @Valid Authentication authentication) throws BadRequestException {

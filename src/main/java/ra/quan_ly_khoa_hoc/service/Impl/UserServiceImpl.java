@@ -143,6 +143,9 @@ public class UserServiceImpl implements UserService {
         if (user.getRole() == RoleStatus.ADMIN && !user.getId().equals(currentId)) {
             throw new BadRequestException("Không được xóa tài khoản admin khác!");
         }
+        if (!user.getCourses().isEmpty() ||  !user.getEnrollments().isEmpty() || !user.getReviews().isEmpty() || !user.getNotifications().isEmpty()) {
+            throw new BadRequestException("Không được xóa tài khoản này, vì có thể mất dữ liệu!");
+        }
         userRepository.deleteById(targetId);
     }
 }
