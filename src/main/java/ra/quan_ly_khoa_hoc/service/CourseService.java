@@ -12,10 +12,10 @@ import ra.quan_ly_khoa_hoc.model.entity.User;
 import java.util.List;
 
 public interface CourseService {
-    List<CourseResponse> getAllCourses(RoleStatus role);
+    List<CourseResponse> getAllCourses(User currentUser);
     CourseResponse getCourseById(Integer id);
     CourseResponse createCourse(CreateCourseRequest createCourseRequest) throws BadRequestException;
-    CourseResponse updateCourse(Integer id, UpdateCourseRequest updateCourseRequest);
+    CourseResponse updateCourse(Integer id, UpdateCourseRequest updateCourseRequest) throws BadRequestException;
     CourseResponse updateCourseStatus(Integer id, UpdateCourseStatusRequest updateCourseStatusRequest) throws BadRequestException;
     void deleteCourse(Integer id) throws BadRequestException;
 }

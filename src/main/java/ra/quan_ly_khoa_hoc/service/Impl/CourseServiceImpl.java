@@ -2,7 +2,8 @@ package ra.quan_ly_khoa_hoc.service.Impl;
 
 import lombok.RequiredArgsConstructor;
 import org.apache.coyote.BadRequestException;
-import org.springframework.security.core.Authentication;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import ra.quan_ly_khoa_hoc.exception.ResourceNotFoundException;
 import ra.quan_ly_khoa_hoc.model.dto.request.CreateCourseRequest;
@@ -29,9 +30,11 @@ public class CourseServiceImpl implements CourseService {
     private final UserRepository userRepository;
 
     @Override
-    public List<CourseResponse> getAllCourses(RoleStatus role) {
+    public List<CourseResponse> getAllCourses(User currentUser) {
         List<Course> courses;
-        if (role == RoleStatus.ADMIN) {
+        boolean isAdmin = SecurityContextHolder.getContext().getAuthentication().getAuthorities()
+                .contains(new SimpleGrantedAuthority("ROLE_ADMIN"));
+        if (isAdmin) {
             courses = courseRepository.findAll();
         }
         else {
@@ -118,11 +121,23 @@ public class CourseServiceImpl implements CourseService {
     }
 
     @Override
-    public CourseResponse updateCourse(Integer id, UpdateCourseRequest updateCourseRequest) {
+    public CourseResponse updateCourse(Integer id, UpdateCourseRequest updateCourseRequest) throws BadRequestException {
         Course course = courseRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tồn tại khóa học có id " + id ));
-        course.setTitle(updateCourseRequest.getTitle());
-        course.setDescription(updateCourseRequest.getDescription());
+        if (updateCourseRequest.getTitle() != null) {
+            course.setTitle(updateCourseRequest.getTitle());
+        }
+        if (updateCourseRequest.getDescription() != null) {
+            course.setDescription(updateCourseRequest.getDescription());
+        }
+        if (updateCourseRequest.getTeacherId() != null) {
+            User user = userRepository.findById(updateCourseRequest.getTeacherId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Không tồn tại người dùng có id " + updateCourseRequest.getTeacherId()));
+            if (user.getRole() != RoleStatus.TEACHER) {
+                throw new BadRequestException("Người dùng có id " + updateCourseRequest.getTeacherId() + " không phải giáo viên!");
+            }
+            course.setTeacher(user);
+        }
         if (updateCourseRequest.getPrice() != null) {
             course.setPrice(updateCourseRequest.getPrice());
         }

@@ -1,7 +1,6 @@
 package ra.quan_ly_khoa_hoc.service.Impl;
 
 import lombok.RequiredArgsConstructor;
-import lombok.SneakyThrows;
 import org.apache.coyote.BadRequestException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -93,9 +92,8 @@ public class UserServiceImpl implements UserService {
                 .build();
     }
 
-    @SneakyThrows
     @Override
-    public UserResponse updateUserRole(Integer targetId, UpdateUserRoleRequest role, Integer currentUserId) {
+    public UserResponse updateUserRole(Integer targetId, UpdateUserRoleRequest role, Integer currentUserId) throws BadRequestException {
         User user = userRepository.findById(targetId)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tồn tại tài khoản có id " + targetId));
         if (user.getRole() == RoleStatus.ADMIN && !user.getId().equals(currentUserId)) {
@@ -114,9 +112,8 @@ public class UserServiceImpl implements UserService {
                 .build();
     }
 
-    @SneakyThrows
     @Override
-    public UserResponse updateUserStatus(Integer targetId, UpdateUserStatusRequest status, Integer currentId) {
+    public UserResponse updateUserStatus(Integer targetId, UpdateUserStatusRequest status, Integer currentId) throws BadRequestException {
         User user = userRepository.findById(targetId)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tồn tại tài khoản có id " + targetId));
         if (user.getRole() == RoleStatus.ADMIN && !user.getId().equals(currentId)) {
@@ -135,15 +132,14 @@ public class UserServiceImpl implements UserService {
                 .build();
     }
 
-    @SneakyThrows
     @Override
-    public void deleteUser(Integer targetId, Integer currentId) {
+    public void deleteUser(Integer targetId, Integer currentId) throws BadRequestException {
         User user = userRepository.findById(targetId)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tồn tại tài khoản có id " + targetId));
         if (user.getRole() == RoleStatus.ADMIN && !user.getId().equals(currentId)) {
             throw new BadRequestException("Không được xóa tài khoản admin khác!");
         }
-        if (!user.getCourses().isEmpty() ||  !user.getEnrollments().isEmpty() || !user.getReviews().isEmpty() || !user.getNotifications().isEmpty()) {
+        if (!user.getCourses().isEmpty() ||  !user.getEnrollments().isEmpty()) {
             throw new BadRequestException("Không được xóa tài khoản này, vì có thể mất dữ liệu!");
         }
         userRepository.deleteById(targetId);

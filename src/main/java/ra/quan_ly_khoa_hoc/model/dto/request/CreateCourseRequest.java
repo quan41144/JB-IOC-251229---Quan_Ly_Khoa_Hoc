@@ -20,5 +20,5 @@ public class CreateCourseRequest {
     @NotNull(message = "Không được để trống giáo viên đứng lớp!")
     private Integer teacherId;
     private BigDecimal price = BigDecimal.ZERO;
-    private Integer duration;
+    private Integer duration = 0;
 }

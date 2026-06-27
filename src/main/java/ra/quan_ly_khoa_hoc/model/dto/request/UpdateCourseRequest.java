@@ -14,10 +14,8 @@ import java.math.BigDecimal;
 @Data
 @Builder
 public class UpdateCourseRequest {
-    @NotBlank(message = "Không được để trống tiêu đề khóa học!")
     private String title;
     private String description;
-    @NotNull(message = "Không được để trống giáo viên đứng lớp!")
     private Integer teacherId;
     private BigDecimal price = BigDecimal.ZERO;
     private Integer duration;

@@ -29,7 +29,7 @@ public class CourseController {
         return new ResponseEntity<>(new ApiResponse<>(
                 true,
                 "Lấy danh sách tất cả khóa học thành công!",
-                courseService.getAllCourses(customUserDetails.getUser().getRole()),
+                courseService.getAllCourses(customUserDetails.getUser()),
                 null,
                 LocalDateTime.now()
         ), HttpStatus.OK);
