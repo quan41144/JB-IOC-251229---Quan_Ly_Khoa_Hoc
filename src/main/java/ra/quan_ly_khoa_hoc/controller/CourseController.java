@@ -2,18 +2,18 @@ package ra.quan_ly_khoa_hoc.controller;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.apache.coyote.BadRequestException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import ra.quan_ly_khoa_hoc.model.dto.request.CreateCourseRequest;
+import ra.quan_ly_khoa_hoc.model.dto.request.CreateLessonRequest;
 import ra.quan_ly_khoa_hoc.model.dto.request.UpdateCourseRequest;
 import ra.quan_ly_khoa_hoc.model.dto.request.UpdateCourseStatusRequest;
 import ra.quan_ly_khoa_hoc.model.dto.response.ApiResponse;
-import ra.quan_ly_khoa_hoc.model.entity.CourseStatus;
 import ra.quan_ly_khoa_hoc.security.user_detail.CustomUserDetails;
 import ra.quan_ly_khoa_hoc.service.CourseService;
+import ra.quan_ly_khoa_hoc.service.LessonService;
 
 import java.time.LocalDateTime;
 
@@ -22,6 +22,7 @@ import java.time.LocalDateTime;
 @RequiredArgsConstructor
 public class CourseController {
     private final CourseService courseService;
+    private final LessonService lessonService;
 
     @GetMapping
     public ResponseEntity<ApiResponse<?>> getAllCourses(@Valid Authentication authentication) {
@@ -29,7 +30,7 @@ public class CourseController {
         return new ResponseEntity<>(new ApiResponse<>(
                 true,
                 "Lấy danh sách tất cả khóa học thành công!",
-                courseService.getAllCourses(customUserDetails.getUser()),
+                courseService.getAllCourses(),
                 null,
                 LocalDateTime.now()
         ), HttpStatus.OK);
@@ -45,7 +46,7 @@ public class CourseController {
         ), HttpStatus.OK);
     }
     @PostMapping
-    public ResponseEntity<ApiResponse<?>> createCourse(@Valid @RequestBody CreateCourseRequest createCourseRequest) throws BadRequestException {
+    public ResponseEntity<ApiResponse<?>> createCourse(@Valid @RequestBody CreateCourseRequest createCourseRequest) {
         return new ResponseEntity<>(new ApiResponse<>(
                 true,
                 "Tạo khóa học mới thành công!",
@@ -55,7 +56,7 @@ public class CourseController {
         ), HttpStatus.CREATED);
     }
     @PutMapping("/{course_id}")
-    public ResponseEntity<ApiResponse<?>> updateCourse(@Valid @PathVariable Integer course_id, @Valid @RequestBody UpdateCourseRequest updateCourseRequest) throws BadRequestException {
+    public ResponseEntity<ApiResponse<?>> updateCourse(@Valid @PathVariable Integer course_id, @Valid @RequestBody UpdateCourseRequest updateCourseRequest) {
         return new ResponseEntity<>(new ApiResponse<>(
                 true,
                 "Cập nhật thông tin chi tiết khóa học có id " + course_id + " thành công!",
@@ -65,7 +66,7 @@ public class CourseController {
         ), HttpStatus.OK);
     }
     @PutMapping("/{course_id}/status")
-    public ResponseEntity<ApiResponse<?>> updateCourseStatus(@Valid @PathVariable Integer course_id, @Valid @RequestBody UpdateCourseStatusRequest updateCourseStatusRequest) throws BadRequestException {
+    public ResponseEntity<ApiResponse<?>> updateCourseStatus(@Valid @PathVariable Integer course_id, @Valid @RequestBody UpdateCourseStatusRequest updateCourseStatusRequest) {
         return new ResponseEntity<>(new ApiResponse<>(
                 true,
                 "Cập nhật trạng thái khóa học thành công!",
@@ -75,7 +76,7 @@ public class CourseController {
         ), HttpStatus.OK);
     }
     @DeleteMapping("/{course_id}")
-    public ResponseEntity<ApiResponse<?>> deleteCourse(@Valid @PathVariable Integer course_id) throws BadRequestException {
+    public ResponseEntity<ApiResponse<?>> deleteCourse(@Valid @PathVariable Integer course_id) {
         courseService.deleteCourse(course_id);
         return new ResponseEntity<>(new ApiResponse<>(
                 true,
@@ -84,5 +85,25 @@ public class CourseController {
                 null,
                 LocalDateTime.now()
         ), HttpStatus.OK);
+    }
+    @GetMapping("/{course_id}/lessons")
+    public ResponseEntity<ApiResponse<?>> getAllLessons(@Valid @PathVariable Integer course_id) {
+        return new ResponseEntity<>(new ApiResponse<>(
+                true,
+                "Lấy danh sách tất cả các bài học trong khóa học có id " + course_id + " thành công!",
+                lessonService.getAllLessons(course_id),
+                null,
+                LocalDateTime.now()
+        ), HttpStatus.OK);
+    }
+    @PostMapping("/{course_id}/lessons")
+    public ResponseEntity<ApiResponse<?>> createLesson(@Valid @PathVariable("course_id") Integer courseId, @Valid @ModelAttribute CreateLessonRequest createLessonRequest) {
+        return new ResponseEntity<>(new ApiResponse<>(
+                true,
+                "Thêm mới bài học thành công!",
+                lessonService.createLesson(courseId, createLessonRequest),
+                null,
+                LocalDateTime.now()
+        ), HttpStatus.CREATED);
     }
 }

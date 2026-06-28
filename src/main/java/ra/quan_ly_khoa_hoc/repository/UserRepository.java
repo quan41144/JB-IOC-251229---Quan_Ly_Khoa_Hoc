@@ -12,7 +12,9 @@ import java.util.Optional;
 public interface UserRepository extends JpaRepository<User, Integer> {
     Optional<User> findByUsername(String username);
     Optional<User> findByEmail(String email);
-    List<User> findByRoleAndIsActive(RoleStatus role, Boolean isActive);
-    List<User> findByRole(RoleStatus role);
-    List<User> findByIsActive(Boolean isActive);
+    Optional<User> findByIdAndIsDeletedFalse(Integer id);
+    List<User> findByRoleAndIsActiveAndIsDeletedFalse(RoleStatus role, Boolean isActive);
+    List<User> findByRoleAndIsDeletedFalse(RoleStatus role);
+    List<User> findByIsActiveAndIsDeletedFalse(Boolean isActive);
+    List<User> findByIsDeletedFalse();
 }

@@ -38,6 +38,9 @@ public class User {
     @Column(name = "updated_at", nullable = false, columnDefinition = "timestamp default current_timestamp")
     @Builder.Default
     private LocalDateTime updatedAt = LocalDateTime.now();
+    @Column(name = "is_deleted", nullable = false)
+    @Builder.Default
+    private Boolean isDeleted = false;
     @OneToMany(mappedBy = "teacher", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
     @ToString.Exclude
     @EqualsAndHashCode.Exclude

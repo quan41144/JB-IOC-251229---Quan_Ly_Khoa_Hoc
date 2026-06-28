@@ -2,7 +2,6 @@ package ra.quan_ly_khoa_hoc.controller;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.apache.coyote.BadRequestException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -53,7 +52,7 @@ public class UserController {
         ), HttpStatus.CREATED);
     }
     @PutMapping("/{user_id}/role")
-    public ResponseEntity<ApiResponse<?>> updateUserRole(@Valid @PathVariable Integer user_id, @Valid @RequestBody UpdateUserRoleRequest role, @Valid Authentication authentication) throws BadRequestException {
+    public ResponseEntity<ApiResponse<?>> updateUserRole(@Valid @PathVariable Integer user_id, @Valid @RequestBody UpdateUserRoleRequest role, @Valid Authentication authentication) {
         CustomUserDetails customUserDetails = (CustomUserDetails) authentication.getPrincipal();
         return new ResponseEntity<>(new ApiResponse<>(
                 true,
@@ -64,7 +63,7 @@ public class UserController {
         ), HttpStatus.OK);
     }
     @PutMapping("/{user_id}/status")
-    public ResponseEntity<ApiResponse<?>> updateUserStatus(@Valid @PathVariable Integer user_id, @Valid @RequestBody UpdateUserStatusRequest status, @Valid Authentication authentication) throws BadRequestException {
+    public ResponseEntity<ApiResponse<?>> updateUserStatus(@Valid @PathVariable Integer user_id, @Valid @RequestBody UpdateUserStatusRequest status, @Valid Authentication authentication) {
         CustomUserDetails customUserDetails = (CustomUserDetails) authentication.getPrincipal();
         return new ResponseEntity<>(new ApiResponse<>(
                 true,
@@ -75,7 +74,7 @@ public class UserController {
         ), HttpStatus.OK);
     }
     @DeleteMapping("/{user_id}")
-    public ResponseEntity<ApiResponse<?>> deleteUser(@Valid @PathVariable Integer user_id, @Valid Authentication authentication) throws BadRequestException {
+    public ResponseEntity<ApiResponse<?>> deleteUser(@Valid @PathVariable Integer user_id, @Valid Authentication authentication) {
         CustomUserDetails customUserDetails = (CustomUserDetails) authentication.getPrincipal();
         userService.deleteUser(user_id, customUserDetails.getUser().getId());
         return new ResponseEntity<>(new ApiResponse<>(

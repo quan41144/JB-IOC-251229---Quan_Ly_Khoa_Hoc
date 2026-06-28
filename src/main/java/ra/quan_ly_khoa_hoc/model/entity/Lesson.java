@@ -30,13 +30,13 @@ public class Lesson {
     private String textContent;
     @Column(name = "order_index", nullable = false)
     private Integer orderIndex;
-    @Column(name = "is_published", nullable = false, columnDefinition = "boolean default false")
+    @Column(name = "is_published", nullable = false, columnDefinition = "boolean")
     @Builder.Default
     private Boolean isPublished = false;
-    @Column(name = "created_at", nullable = false, columnDefinition = "timestamp default current_timestamp")
+    @Column(name = "created_at", nullable = false)
     @Builder.Default
     private LocalDateTime createdAt = LocalDateTime.now();
-    @Column(name = "updated_at", nullable = false, columnDefinition = "timestamp default current_timestamp")
+    @Column(name = "updated_at", nullable = false)
     @Builder.Default
     private LocalDateTime updatedAt = LocalDateTime.now();
     @OneToMany(mappedBy = "lesson", cascade = CascadeType.ALL, fetch = FetchType.LAZY)

@@ -19,6 +19,7 @@ public class CreateCourseRequest {
     private String description;
     @NotNull(message = "Không được để trống giáo viên đứng lớp!")
     private Integer teacherId;
+    @Builder.Default
     private BigDecimal price = BigDecimal.ZERO;
     private Integer duration = 0;
 }

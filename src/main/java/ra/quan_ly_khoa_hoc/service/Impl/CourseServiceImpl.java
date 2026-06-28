@@ -1,26 +1,28 @@
 package ra.quan_ly_khoa_hoc.service.Impl;
 
 import lombok.RequiredArgsConstructor;
-import org.apache.coyote.BadRequestException;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
+import ra.quan_ly_khoa_hoc.exception.BadRequestException;
 import ra.quan_ly_khoa_hoc.exception.ResourceNotFoundException;
 import ra.quan_ly_khoa_hoc.model.dto.request.CreateCourseRequest;
 import ra.quan_ly_khoa_hoc.model.dto.request.UpdateCourseRequest;
 import ra.quan_ly_khoa_hoc.model.dto.request.UpdateCourseStatusRequest;
 import ra.quan_ly_khoa_hoc.model.dto.response.CourseResponse;
 import ra.quan_ly_khoa_hoc.model.dto.response.LessonResponse;
-import ra.quan_ly_khoa_hoc.model.entity.Course;
-import ra.quan_ly_khoa_hoc.model.entity.CourseStatus;
-import ra.quan_ly_khoa_hoc.model.entity.RoleStatus;
-import ra.quan_ly_khoa_hoc.model.entity.User;
+import ra.quan_ly_khoa_hoc.model.entity.*;
 import ra.quan_ly_khoa_hoc.repository.CourseRepository;
+import ra.quan_ly_khoa_hoc.repository.EnrollmentRepository;
 import ra.quan_ly_khoa_hoc.repository.LessonRepository;
 import ra.quan_ly_khoa_hoc.repository.UserRepository;
+import ra.quan_ly_khoa_hoc.security.user_detail.CustomUserDetails;
 import ra.quan_ly_khoa_hoc.service.CourseService;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Stream;
 
 @Service
 @RequiredArgsConstructor
@@ -28,17 +30,32 @@ public class CourseServiceImpl implements CourseService {
     private final CourseRepository courseRepository;
     private final LessonRepository lessonRepository;
     private final UserRepository userRepository;
+    private final EnrollmentRepository enrollmentRepository;
 
     @Override
-    public List<CourseResponse> getAllCourses(User currentUser) {
+    public List<CourseResponse> getAllCourses() {
         List<Course> courses;
         boolean isAdmin = SecurityContextHolder.getContext().getAuthentication().getAuthorities()
                 .contains(new SimpleGrantedAuthority("ROLE_ADMIN"));
+        boolean isStudent = SecurityContextHolder.getContext().getAuthentication().getAuthorities()
+                .contains(new SimpleGrantedAuthority("ROLE_STUDENT"));
         if (isAdmin) {
-            courses = courseRepository.findAll();
+            courses = courseRepository.findAllByIsDeletedFalse();
+        }
+        else if (isStudent) {
+            List<Course> published = courseRepository.findCoursesByStatusAndIsDeletedFalse(CourseStatus.PUBLISHED);
+            Integer studentId = ((CustomUserDetails) SecurityContextHolder.getContext().getAuthentication().getPrincipal())
+                    .getUser().getId();
+            List<Course> archived = courseRepository.findArchivedCoursesByStudentId(studentId);
+            courses = Stream.concat(archived.stream(), published.stream()).toList();
         }
         else {
-            courses = courseRepository.findCoursesByStatus(CourseStatus.PUBLISHED);
+            Integer teacherId = ((CustomUserDetails) SecurityContextHolder.getContext().getAuthentication().getPrincipal())
+                    .getUser().getId();
+            List<Course> published = courseRepository.findCoursesByStatusAndIsDeletedFalse(CourseStatus.PUBLISHED);
+
+            List<Course> ownCourses = courseRepository.findByTeacherIdAndIsDeletedFalse(teacherId);
+            courses = Stream.concat(published.stream(), ownCourses.stream().filter(c -> c.getStatus() == CourseStatus.ARCHIVED)).distinct().toList();
         }
         return courses.stream().map(course -> CourseResponse.builder()
                 .courseId(course.getId())
@@ -58,11 +75,38 @@ public class CourseServiceImpl implements CourseService {
 
     @Override
     public CourseResponse getCourseById(Integer id) {
-        Course course = courseRepository.findById(id)
+        Course course = courseRepository.findByIdAndIsDeletedFalse(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Khóa học có id " + id + " không tồn tại!"));
-        List<LessonResponse> lessons = lessonRepository
-                .findByCourseIdAndIsPublishedTrueOrderByOrderIndex(id)
-                .stream()
+        boolean isStudent = SecurityContextHolder.getContext().getAuthentication().getAuthorities()
+                .contains(new SimpleGrantedAuthority("ROLE_STUDENT"));
+        boolean isTeacher = SecurityContextHolder.getContext().getAuthentication().getAuthorities()
+                .contains(new SimpleGrantedAuthority("ROLE_TEACHER"));
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (course.getStatus() == CourseStatus.DRAFT) {
+            if (isTeacher) {
+                CustomUserDetails customUserDetails = (CustomUserDetails) auth.getPrincipal();
+                if (!course.getTeacher().getId().equals(customUserDetails.getUser().getId())) {
+                    throw new ResourceNotFoundException("Khóa học có id " + id + " không tồn tại!");
+                }
+            }
+            else if (isStudent) {
+                throw new ResourceNotFoundException("Khóa học có id " + id + " không tồn tại!");
+            }
+        }
+        if (course.getStatus() == CourseStatus.ARCHIVED && isStudent) {
+            CustomUserDetails customUserDetails = (CustomUserDetails) auth.getPrincipal();
+            if (!enrollmentRepository.existsByStudentIdAndCourseId(customUserDetails.getUser().getId(), course.getId())) {
+                throw new ResourceNotFoundException("Khóa học có id " + id + " không tồn tại!");
+            }
+        }
+        List<Lesson> lessons;
+        if (isStudent) {
+            lessons = lessonRepository.findByCourseIdAndIsPublishedTrueOrderByOrderIndex(course.getId());
+        }
+        else {
+            lessons = lessonRepository.findByCourseIdOrderByOrderIndex(course.getId());
+        }
+        List<LessonResponse> lessonResponses = lessons.stream()
                 .map(lesson -> LessonResponse.builder()
                         .lessonId(lesson.getId())
                         .courseId(id)
@@ -86,14 +130,14 @@ public class CourseServiceImpl implements CourseService {
                 .status(course.getStatus())
                 .createdAt(course.getCreatedAt())
                 .updatedAt(course.getUpdatedAt())
-                .lessons(lessons)
+                .lessons(lessonResponses)
                 .build();
     }
 
     @Override
-    public CourseResponse createCourse(CreateCourseRequest createCourseRequest) throws BadRequestException {
-        User teacher = userRepository.findById(createCourseRequest.getTeacherId())
-                .orElseThrow(() -> new ResourceNotFoundException("Không tồn tại giáo viên có id " + createCourseRequest.getTeacherId()));
+    public CourseResponse createCourse(CreateCourseRequest createCourseRequest) {
+        User teacher = userRepository.findByIdAndIsDeletedFalse(createCourseRequest.getTeacherId())
+                .orElseThrow(() -> new ResourceNotFoundException("Không tồn tại người dùng có id " + createCourseRequest.getTeacherId()));
         if (teacher.getRole() != RoleStatus.TEACHER) {
             throw new BadRequestException("Người dùng có id " + createCourseRequest.getTeacherId() + " không phải giáo viên");
         }
@@ -121,8 +165,8 @@ public class CourseServiceImpl implements CourseService {
     }
 
     @Override
-    public CourseResponse updateCourse(Integer id, UpdateCourseRequest updateCourseRequest) throws BadRequestException {
-        Course course = courseRepository.findById(id)
+    public CourseResponse updateCourse(Integer id, UpdateCourseRequest updateCourseRequest) {
+        Course course = courseRepository.findByIdAndIsDeletedFalse(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tồn tại khóa học có id " + id ));
         if (updateCourseRequest.getTitle() != null) {
             course.setTitle(updateCourseRequest.getTitle());
@@ -131,7 +175,7 @@ public class CourseServiceImpl implements CourseService {
             course.setDescription(updateCourseRequest.getDescription());
         }
         if (updateCourseRequest.getTeacherId() != null) {
-            User user = userRepository.findById(updateCourseRequest.getTeacherId())
+            User user = userRepository.findByIdAndIsDeletedFalse(updateCourseRequest.getTeacherId())
                     .orElseThrow(() -> new ResourceNotFoundException("Không tồn tại người dùng có id " + updateCourseRequest.getTeacherId()));
             if (user.getRole() != RoleStatus.TEACHER) {
                 throw new BadRequestException("Người dùng có id " + updateCourseRequest.getTeacherId() + " không phải giáo viên!");
@@ -161,11 +205,14 @@ public class CourseServiceImpl implements CourseService {
     }
 
     @Override
-    public CourseResponse updateCourseStatus(Integer id, UpdateCourseStatusRequest updateCourseStatusRequest) throws BadRequestException {
-        Course course = courseRepository.findById(id)
+    public CourseResponse updateCourseStatus(Integer id, UpdateCourseStatusRequest updateCourseStatusRequest) {
+        Course course = courseRepository.findByIdAndIsDeletedFalse(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tồn tại khóa học có id " + id));
         if (course.getStatus() == CourseStatus.PUBLISHED && updateCourseStatusRequest.getStatus() == CourseStatus.DRAFT) {
-            throw new BadRequestException("Không được thay đổi trạng thái của khóa học đã xuất bản hoặc có học sinh đang theo học trở thành trạng thái bản nháp!");
+            throw new BadRequestException("Không được thay đổi trạng thái của khóa học đã xuất bản trở thành trạng thái bản nháp!");
+        }
+        if (!course.getEnrollments().isEmpty() && updateCourseStatusRequest.getStatus() == CourseStatus.DRAFT) {
+            throw new BadRequestException("Không được thay đổi trạng thái của khóa học đang có học sinh học trở thành trạng thái bản nháp!");
         }
         course.setStatus(updateCourseStatusRequest.getStatus());
         Course savedCourse = courseRepository.save(course);
@@ -185,15 +232,14 @@ public class CourseServiceImpl implements CourseService {
     }
 
     @Override
-    public void deleteCourse(Integer id) throws BadRequestException {
-        Course course = courseRepository.findById(id)
+    public void deleteCourse(Integer id) {
+        Course course = courseRepository.findByIdAndIsDeletedFalse(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tồn tại khóa học có id " + id));
-        if (course.getStatus() == CourseStatus.PUBLISHED) {
-            throw new BadRequestException("Không được xóa khóa học đang được xuất bản hoặc có học sinh theo học!");
+        if (!course.getEnrollments().isEmpty()) {
+            throw new BadRequestException("Không được xóa khóa học đang có học sinh theo học!");
         }
-        if (!course.getLessons().isEmpty() || !course.getEnrollments().isEmpty() || !course.getReviews().isEmpty()) {
-            throw new BadRequestException("Không được xóa khóa học khi đang chứa lessons, enrollments hoặc reviews");
-        }
-        courseRepository.deleteById(id);
+        course.setIsDeleted(true);
+        course.setStatus(CourseStatus.ARCHIVED);
+        courseRepository.save(course);
     }
 }

@@ -1,9 +1,9 @@
 package ra.quan_ly_khoa_hoc.service.Impl;
 
 import lombok.RequiredArgsConstructor;
-import org.apache.coyote.BadRequestException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import ra.quan_ly_khoa_hoc.exception.BadRequestException;
 import ra.quan_ly_khoa_hoc.exception.ConflictException;
 import ra.quan_ly_khoa_hoc.exception.ResourceNotFoundException;
 import ra.quan_ly_khoa_hoc.model.dto.request.CreateUserRequest;
@@ -54,16 +54,16 @@ public class UserServiceImpl implements UserService {
     public List<UserResponse> getAllUsers(RoleStatus role, Boolean status) {
         List<User> users;
         if (role != null && status != null) {
-            users = userRepository.findByRoleAndIsActive(role, status);
+            users = userRepository.findByRoleAndIsActiveAndIsDeletedFalse(role, status);
         }
         else if (role != null) {
-            users = userRepository.findByRole(role);
+            users = userRepository.findByRoleAndIsDeletedFalse(role);
         }
         else if (status != null) {
-            users = userRepository.findByIsActive(status);
+            users = userRepository.findByIsActiveAndIsDeletedFalse(status);
         }
         else {
-            users = userRepository.findAll();
+            users = userRepository.findByIsDeletedFalse();
         }
         return users.stream().map(user -> UserResponse.builder()
                 .userId(user.getId())
@@ -79,7 +79,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public UserResponse getUserById(Integer id) {
-        User user = userRepository.findById(id)
+        User user = userRepository.findByIdAndIsDeletedFalse(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tồn tại tài khoản có id " + id));
         return UserResponse.builder()
                 .userId(user.getId())
@@ -93,9 +93,12 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public UserResponse updateUserRole(Integer targetId, UpdateUserRoleRequest role, Integer currentUserId) throws BadRequestException {
-        User user = userRepository.findById(targetId)
+    public UserResponse updateUserRole(Integer targetId, UpdateUserRoleRequest role, Integer currentUserId) {
+        User user = userRepository.findByIdAndIsDeletedFalse(targetId)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tồn tại tài khoản có id " + targetId));
+        if (user.getIsDeleted()) {
+            throw new BadRequestException("Tài khoản này đã được xóa!");
+        }
         if (user.getRole() == RoleStatus.ADMIN && !user.getId().equals(currentUserId)) {
             throw new BadRequestException("Không được thay đổi role của admin khác!");
         }
@@ -113,9 +116,12 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public UserResponse updateUserStatus(Integer targetId, UpdateUserStatusRequest status, Integer currentId) throws BadRequestException {
-        User user = userRepository.findById(targetId)
+    public UserResponse updateUserStatus(Integer targetId, UpdateUserStatusRequest status, Integer currentId) {
+        User user = userRepository.findByIdAndIsDeletedFalse(targetId)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tồn tại tài khoản có id " + targetId));
+        if (user.getIsDeleted()) {
+            throw new BadRequestException("Tài khoản này đã được xóa!");
+        }
         if (user.getRole() == RoleStatus.ADMIN && !user.getId().equals(currentId)) {
             throw new BadRequestException("Không được thay đổi trạng thái hoạt động của admin khác!");
         }
@@ -133,15 +139,18 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public void deleteUser(Integer targetId, Integer currentId) throws BadRequestException {
-        User user = userRepository.findById(targetId)
+    public void deleteUser(Integer targetId, Integer currentId) {
+        User user = userRepository.findByIdAndIsDeletedFalse(targetId)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tồn tại tài khoản có id " + targetId));
+        if (user.getIsDeleted()) {
+            throw new BadRequestException("Tài khoản này đã được xóa!");
+        }
         if (user.getRole() == RoleStatus.ADMIN && !user.getId().equals(currentId)) {
             throw new BadRequestException("Không được xóa tài khoản admin khác!");
         }
-        if (!user.getCourses().isEmpty() ||  !user.getEnrollments().isEmpty()) {
-            throw new BadRequestException("Không được xóa tài khoản này, vì có thể mất dữ liệu!");
-        }
-        userRepository.deleteById(targetId);
+        user.setFullName("Tài khoản vô danh");
+        user.setIsDeleted(true);
+        user.setIsActive(false);
+        userRepository.save(user);
     }
 }

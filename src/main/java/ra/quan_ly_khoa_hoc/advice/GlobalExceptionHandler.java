@@ -1,6 +1,5 @@
 package ra.quan_ly_khoa_hoc.advice;
 
-import org.apache.coyote.BadRequestException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -9,6 +8,7 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import ra.quan_ly_khoa_hoc.exception.BadRequestException;
 import ra.quan_ly_khoa_hoc.exception.ConflictException;
 import ra.quan_ly_khoa_hoc.exception.ResourceNotFoundException;
 import ra.quan_ly_khoa_hoc.model.dto.response.ApiResponse;

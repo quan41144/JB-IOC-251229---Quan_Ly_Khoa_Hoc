@@ -27,7 +27,7 @@ public class Course {
     @ToString.Exclude
     @EqualsAndHashCode.Exclude
     private User teacher;
-    @Column(name = "price", nullable = false, columnDefinition = "numeric(10,2) default 0.00")
+    @Column(name = "price", nullable = false, columnDefinition = "numeric(10,2)")
     @Builder.Default
     private BigDecimal price = BigDecimal.ZERO;
     @Column(name = "duration_hours")
@@ -36,12 +36,15 @@ public class Course {
     @Enumerated(EnumType.STRING)
     @Builder.Default
     private CourseStatus status = CourseStatus.DRAFT;
-    @Column(name = "created_at", nullable = false, columnDefinition = "timestamp default current_timestamp")
+    @Column(name = "created_at", nullable = false)
     @Builder.Default
     private LocalDateTime createdAt = LocalDateTime.now();
-    @Column(name = "updated_at", nullable = false, columnDefinition = "timestamp default current_timestamp")
+    @Column(name = "updated_at", nullable = false)
     @Builder.Default
     private LocalDateTime updatedAt = LocalDateTime.now();
+    @Column(name = "is_deleted", nullable = false)
+    @Builder.Default
+    private Boolean isDeleted = false;
     @OneToMany(mappedBy = "course", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     @ToString.Exclude
     @EqualsAndHashCode.Exclude
