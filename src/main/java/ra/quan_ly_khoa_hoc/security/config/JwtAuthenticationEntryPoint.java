@@ -28,7 +28,11 @@ public class JwtAuthenticationEntryPoint implements AuthenticationEntryPoint {
             body.put("message", "Token đã hết hạn!");
             body.put("code", HttpStatus.UNAUTHORIZED);
         }
-        else if ("INVALID_TOKEN_MALFFORMED".equals(message)) {
+        else if ("INVALID_TOKEN_SIGNATURE".equals(message)) {
+            body.put("message", "Token không hợp lệ!");
+            body.put("code", HttpStatus.UNAUTHORIZED);
+        }
+        else if ("INVALID_TOKEN_MALFORMED".equals(message)) {
             body.put("message", "Token sai định dạng!");
             body.put("code", HttpStatus.UNAUTHORIZED);
         }

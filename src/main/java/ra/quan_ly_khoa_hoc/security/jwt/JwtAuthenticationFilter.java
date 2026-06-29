@@ -3,6 +3,7 @@ package ra.quan_ly_khoa_hoc.security.jwt;
 import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.MalformedJwtException;
 import io.jsonwebtoken.UnsupportedJwtException;
+import io.jsonwebtoken.security.SignatureException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -47,6 +48,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             }
             catch (IllegalArgumentException e) {
                 request.setAttribute("exception", "INVALID_TOKEN_ILLEGAL");
+            }
+            catch (SignatureException e) {
+                request.setAttribute("exception", "INVALID_TOKEN_SIGNATURE");
             }
         }
         filterChain.doFilter(request, response);

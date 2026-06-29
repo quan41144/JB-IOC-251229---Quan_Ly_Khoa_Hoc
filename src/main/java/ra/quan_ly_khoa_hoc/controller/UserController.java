@@ -50,7 +50,7 @@ public class UserController {
         ), HttpStatus.CREATED);
     }
     @PutMapping("/{user_id}/role")
-    public ResponseEntity<ApiResponse<?>> updateUserRole(@Valid @PathVariable Integer user_id, @Valid @RequestBody UpdateUserRoleRequest role, @Valid Authentication authentication) {
+    public ResponseEntity<ApiResponse<?>> updateUserRole(@Valid @PathVariable Integer user_id, @Valid @RequestBody UpdateUserRoleRequest role, Authentication authentication) {
         CustomUserDetails customUserDetails = (CustomUserDetails) authentication.getPrincipal();
         return new ResponseEntity<>(new ApiResponse<>(
                 true,
@@ -61,7 +61,7 @@ public class UserController {
         ), HttpStatus.OK);
     }
     @PutMapping("/{user_id}/status")
-    public ResponseEntity<ApiResponse<?>> updateUserStatus(@Valid @PathVariable Integer user_id, @Valid @RequestBody UpdateUserStatusRequest status, @Valid Authentication authentication) {
+    public ResponseEntity<ApiResponse<?>> updateUserStatus(@Valid @PathVariable Integer user_id, @Valid @RequestBody UpdateUserStatusRequest status, Authentication authentication) {
         CustomUserDetails customUserDetails = (CustomUserDetails) authentication.getPrincipal();
         return new ResponseEntity<>(new ApiResponse<>(
                 true,
@@ -72,7 +72,7 @@ public class UserController {
         ), HttpStatus.OK);
     }
     @DeleteMapping("/{user_id}")
-    public ResponseEntity<ApiResponse<?>> deleteUser(@Valid @PathVariable Integer user_id, @Valid Authentication authentication) {
+    public ResponseEntity<ApiResponse<?>> deleteUser(@Valid @PathVariable Integer user_id, Authentication authentication) {
         CustomUserDetails customUserDetails = (CustomUserDetails) authentication.getPrincipal();
         userService.deleteUser(user_id, customUserDetails.getUser().getId());
         return new ResponseEntity<>(new ApiResponse<>(

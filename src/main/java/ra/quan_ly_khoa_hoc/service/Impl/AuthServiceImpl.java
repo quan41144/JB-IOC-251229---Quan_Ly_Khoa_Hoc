@@ -32,9 +32,6 @@ public class AuthServiceImpl implements AuthService {
                 )
         );
         CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
-        if (!userDetails.getUser().getIsActive()) {
-            throw new BadCredentialsException("Tài khoản đã bị vô hiệu hóa!");
-        }
         String accessToken = jwtProvider.generateAccessToken(userDetails.getUser().getUsername());
         String refreshToken = jwtProvider.generateRefreshToken(userDetails.getUser().getUsername());
         return new LoginResponse(accessToken, refreshToken);
@@ -42,7 +39,7 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     public UserResponse getMe(String username) {
-        User user = userRepository.findByUsername(username)
+        User user = userRepository.findByUsernameAndIsDeletedFalse(username)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy user!"));
         return UserResponse.builder()
                 .userId(user.getId())

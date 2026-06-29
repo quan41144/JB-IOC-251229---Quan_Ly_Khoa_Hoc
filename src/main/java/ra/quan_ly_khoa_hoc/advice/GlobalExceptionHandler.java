@@ -3,6 +3,8 @@ package ra.quan_ly_khoa_hoc.advice;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.DisabledException;
+import org.springframework.security.authentication.LockedException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -82,5 +84,15 @@ public class GlobalExceptionHandler {
                 ex.getMessage(),
                 LocalDateTime.now()
         ), HttpStatus.CONFLICT);
+    }
+    @ExceptionHandler({DisabledException.class, LockedException.class})
+    public ResponseEntity<ApiResponse<?>> handleAccountStatusException(Exception ex) {
+        return new ResponseEntity<>(new ApiResponse<>(
+                false,
+                "Tài khoản của bạn đã bị khóa hoặc bị vô hiệu hóa!",
+                null,
+                ex.getMessage(),
+                LocalDateTime.now()
+        ), HttpStatus.FORBIDDEN);
     }
 }

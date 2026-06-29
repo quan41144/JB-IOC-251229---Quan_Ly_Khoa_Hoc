@@ -5,6 +5,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import ra.quan_ly_khoa_hoc.exception.BadRequestException;
 import ra.quan_ly_khoa_hoc.exception.ResourceNotFoundException;
 import ra.quan_ly_khoa_hoc.model.dto.request.CreateCourseRequest;
@@ -55,7 +56,7 @@ public class CourseServiceImpl implements CourseService {
             List<Course> published = courseRepository.findCoursesByStatusAndIsDeletedFalse(CourseStatus.PUBLISHED);
 
             List<Course> ownCourses = courseRepository.findByTeacherIdAndIsDeletedFalse(teacherId);
-            courses = Stream.concat(published.stream(), ownCourses.stream().filter(c -> c.getStatus() == CourseStatus.ARCHIVED)).distinct().toList();
+            courses = Stream.concat(published.stream(), ownCourses.stream()).distinct().toList();
         }
         return courses.stream().map(course -> CourseResponse.builder()
                 .courseId(course.getId())
@@ -205,6 +206,7 @@ public class CourseServiceImpl implements CourseService {
     }
 
     @Override
+    @Transactional
     public CourseResponse updateCourseStatus(Integer id, UpdateCourseStatusRequest updateCourseStatusRequest) {
         Course course = courseRepository.findByIdAndIsDeletedFalse(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tồn tại khóa học có id " + id));
@@ -232,6 +234,7 @@ public class CourseServiceImpl implements CourseService {
     }
 
     @Override
+    @Transactional
     public void deleteCourse(Integer id) {
         Course course = courseRepository.findByIdAndIsDeletedFalse(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tồn tại khóa học có id " + id));

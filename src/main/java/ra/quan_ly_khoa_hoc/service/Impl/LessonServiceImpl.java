@@ -9,6 +9,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
+import ra.quan_ly_khoa_hoc.exception.BadRequestException;
 import ra.quan_ly_khoa_hoc.exception.ConflictException;
 import ra.quan_ly_khoa_hoc.exception.ResourceNotFoundException;
 import ra.quan_ly_khoa_hoc.model.dto.request.CreateLessonRequest;
@@ -221,12 +222,13 @@ public class LessonServiceImpl implements LessonService {
                 .orElseThrow(() -> new ResourceNotFoundException("Không tồn tại bài học có id " + lessonId));
         Course course = courseRepository.findByIdAndIsDeletedFalse(lesson.getCourse().getId())
                 .orElseThrow(() -> new ResourceNotFoundException("Không tồn tại khóa học có id " + lessonId));
-        if (!lesson.getIsPublished().equals(updateLessonPublishRequest.getPublish())) {
-            Boolean publish = updateLessonPublishRequest.getPublish();
-            if (!publish) {
-                lessonProgressRepository.deleteByLessonId(lessonId);
-            }
-            else {
+        CustomUserDetails customUserDetails = (CustomUserDetails) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        if (customUserDetails.getUser().getRole() == RoleStatus.TEACHER && !course.getTeacher().getId().equals(customUserDetails.getUser().getId())) {
+            throw new BadRequestException("Bạn không có quyền chỉnh sửa khóa học này!");
+        }
+        Boolean publish = updateLessonPublishRequest.getPublish();
+        if (!lesson.getIsPublished().equals(publish)) {
+            if (publish) {
                 List<Enrollment> enrollments = course.getEnrollments();
                 if (enrollments != null && !enrollments.isEmpty()) {
                     List<LessonProgress> newProgresses = enrollments.stream()
@@ -234,7 +236,9 @@ public class LessonServiceImpl implements LessonService {
                                     .enrollment(enrollment)
                                     .lesson(lesson)
                                     .isCompleted(false)
-                                    .completedAt(null).build()
+                                    .completedAt(null)
+                                    .lastAccessedAt(LocalDateTime.now())
+                                    .build()
                             ).toList();
                     lessonProgressRepository.saveAll(newProgresses);
                 }

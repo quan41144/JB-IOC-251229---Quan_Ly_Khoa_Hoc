@@ -7,6 +7,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+import ra.quan_ly_khoa_hoc.exception.BadRequestException;
 import ra.quan_ly_khoa_hoc.model.dto.request.LoginRequest;
 import ra.quan_ly_khoa_hoc.model.dto.response.ApiResponse;
 import ra.quan_ly_khoa_hoc.service.AuthService;
@@ -32,7 +33,11 @@ public class AuthController {
 
     @PostMapping("/verify")
     public ResponseEntity<ApiResponse<?>> verify(@Valid HttpServletRequest request) {
-        String token = request.getHeader("Authorization").substring(7);
+        String authHeader = request.getHeader("Authorization");
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            throw new BadRequestException("Token sai định dạng!");
+        }
+        String token = authHeader.substring(7);
         return new ResponseEntity<>(new ApiResponse<>(
                 true,
                 "Xác thực token người dùng thành công!",
