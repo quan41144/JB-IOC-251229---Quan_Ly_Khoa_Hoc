@@ -6,6 +6,7 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import ra.quan_ly_khoa_hoc.exception.AccessDeniedException;
 import ra.quan_ly_khoa_hoc.exception.BadRequestException;
 import ra.quan_ly_khoa_hoc.exception.ResourceNotFoundException;
 import ra.quan_ly_khoa_hoc.model.dto.request.CreateCourseRequest;
@@ -21,9 +22,7 @@ import ra.quan_ly_khoa_hoc.repository.UserRepository;
 import ra.quan_ly_khoa_hoc.security.user_detail.CustomUserDetails;
 import ra.quan_ly_khoa_hoc.service.CourseService;
 
-import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Stream;
 
 @Service
 @RequiredArgsConstructor
@@ -34,44 +33,66 @@ public class CourseServiceImpl implements CourseService {
     private final EnrollmentRepository enrollmentRepository;
 
     @Override
-    public List<CourseResponse> getAllCourses() {
+    public List<CourseResponse> getAllCourses(String keyword, Integer teacherId, CourseStatus status) {
         List<Course> courses;
+        if ((keyword != null && !keyword.trim().isEmpty()) && teacherId != null) {
+            courses = courseRepository.findByKeywordAndIsDeletedFalseAndTeacherId(keyword, teacherId);
+        }
+        else if (!(keyword != null && !keyword.trim().isEmpty()) && teacherId != null) {
+            courses = courseRepository.findByTeacherIdAndIsDeletedFalse(teacherId);
+        }
+        else if ((keyword != null && !keyword.trim().isEmpty()) && teacherId == null) {
+            courses = courseRepository.findByKeywordAndIsDeletedFalse(keyword);
+        }
+        else {
+            courses = courseRepository.findAllByIsDeletedFalse();
+        }
+        if (status != null) {
+            courses = courses.stream()
+                    .filter(c -> c.getStatus() == status)
+                    .toList();
+        }
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || !auth.isAuthenticated() || !(auth.getPrincipal() instanceof CustomUserDetails)) {
+            throw new AccessDeniedException("Chưa đăng nhập!");
+        }
+        List<Course> resultCourses;
+        CustomUserDetails customUserDetails = (CustomUserDetails) auth.getPrincipal();
+        Integer currentUserId = customUserDetails.getUser().getId();
         boolean isAdmin = SecurityContextHolder.getContext().getAuthentication().getAuthorities()
                 .contains(new SimpleGrantedAuthority("ROLE_ADMIN"));
         boolean isStudent = SecurityContextHolder.getContext().getAuthentication().getAuthorities()
                 .contains(new SimpleGrantedAuthority("ROLE_STUDENT"));
         if (isAdmin) {
-            courses = courseRepository.findAllByIsDeletedFalse();
+            resultCourses = courses;
         }
         else if (isStudent) {
-            List<Course> published = courseRepository.findCoursesByStatusAndIsDeletedFalse(CourseStatus.PUBLISHED);
-            Integer studentId = ((CustomUserDetails) SecurityContextHolder.getContext().getAuthentication().getPrincipal())
-                    .getUser().getId();
-            List<Course> archived = courseRepository.findArchivedCoursesByStudentId(studentId);
-            courses = Stream.concat(archived.stream(), published.stream()).toList();
+            resultCourses = courses.stream()
+                    .filter(c -> c.getStatus() == CourseStatus.PUBLISHED
+                            || (c.getStatus() == CourseStatus.ARCHIVED && enrollmentRepository.existsByStudentIdAndCourseId(currentUserId, c.getId()))
+                    ).toList();
         }
         else {
-            Integer teacherId = ((CustomUserDetails) SecurityContextHolder.getContext().getAuthentication().getPrincipal())
-                    .getUser().getId();
-            List<Course> published = courseRepository.findCoursesByStatusAndIsDeletedFalse(CourseStatus.PUBLISHED);
-
-            List<Course> ownCourses = courseRepository.findByTeacherIdAndIsDeletedFalse(teacherId);
-            courses = Stream.concat(published.stream(), ownCourses.stream()).distinct().toList();
+            resultCourses = courses.stream()
+                    .filter(c -> c.getStatus() == CourseStatus.PUBLISHED
+                            || c.getTeacher().getId().equals(currentUserId)
+                    ).toList();
         }
-        return courses.stream().map(course -> CourseResponse.builder()
-                .courseId(course.getId())
-                .title(course.getTitle())
-                .description(course.getDescription())
-                .teacherId(course.getTeacher().getId())
-                .teacherName(course.getTeacher().getFullName())
-                .price(course.getPrice())
-                .duration(course.getDuration())
-                .status(course.getStatus())
-                .createdAt(course.getCreatedAt())
-                .updatedAt(course.getUpdatedAt())
-                .lessons(null)
-                .build()
-        ).toList();
+        return resultCourses.stream()
+                .map(course -> CourseResponse.builder()
+                        .courseId(course.getId())
+                        .title(course.getTitle())
+                        .description(course.getDescription())
+                        .teacherId(course.getTeacher().getId())
+                        .teacherName(course.getTeacher().getFullName())
+                        .price(course.getPrice())
+                        .duration(course.getDuration())
+                        .status(course.getStatus())
+                        .createdAt(course.getCreatedAt())
+                        .updatedAt(course.getUpdatedAt())
+                        .lessons(null)
+                        .build()
+                ).toList();
     }
 
     @Override

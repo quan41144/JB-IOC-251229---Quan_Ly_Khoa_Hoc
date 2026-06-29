@@ -56,4 +56,15 @@ public class AuthController {
                 LocalDateTime.now()
         ), HttpStatus.OK);
     }
+    @PostMapping("/logout")
+    public ResponseEntity<ApiResponse<?>> logout() {
+        authService.logout();
+        return new ResponseEntity<>(new ApiResponse<>(
+                true,
+                "Đăng xuất thành công!",
+                null,
+                null,
+                LocalDateTime.now()
+        ), HttpStatus.OK);
+    }
 }

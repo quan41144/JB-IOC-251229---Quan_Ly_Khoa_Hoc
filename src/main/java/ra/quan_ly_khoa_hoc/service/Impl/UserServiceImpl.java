@@ -10,20 +10,27 @@ import ra.quan_ly_khoa_hoc.exception.ConflictException;
 import ra.quan_ly_khoa_hoc.exception.ResourceNotFoundException;
 import ra.quan_ly_khoa_hoc.model.dto.request.*;
 import ra.quan_ly_khoa_hoc.model.dto.response.UserResponse;
+import ra.quan_ly_khoa_hoc.model.entity.Course;
+import ra.quan_ly_khoa_hoc.model.entity.CourseStatus;
 import ra.quan_ly_khoa_hoc.model.entity.RoleStatus;
 import ra.quan_ly_khoa_hoc.model.entity.User;
+import ra.quan_ly_khoa_hoc.repository.CourseRepository;
 import ra.quan_ly_khoa_hoc.repository.UserRepository;
 import ra.quan_ly_khoa_hoc.security.user_detail.CustomUserDetails;
+import ra.quan_ly_khoa_hoc.service.AuthService;
+import ra.quan_ly_khoa_hoc.service.CourseService;
 import ra.quan_ly_khoa_hoc.service.UserService;
 
-import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
 @RequiredArgsConstructor
 public class UserServiceImpl implements UserService {
     private final UserRepository userRepository;
+    private final CourseRepository courseRepository;
     private final PasswordEncoder passwordEncoder;
+    private final AuthService authService;
+    private final CourseService courseService;
 
     @Override
     public UserResponse createUser(CreateUserRequest createUserRequest) {
@@ -118,16 +125,33 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    @Transactional
     public UserResponse updateUserStatus(Integer targetId, UpdateUserStatusRequest status, Integer currentId) {
         User user = userRepository.findByIdAndIsDeletedFalse(targetId)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tồn tại tài khoản có id " + targetId));
         if (user.getId().equals(currentId)) {
             throw new BadRequestException("Không được tự khóa tài khoản của mình!");
         }
-        if (user.getRole() == RoleStatus.ADMIN && !user.getId().equals(currentId)) {
+        if (user.getRole() == RoleStatus.ADMIN) {
             throw new BadRequestException("Không được thay đổi trạng thái hoạt động của admin khác!");
         }
         user.setIsActive(status.getStatus());
+        if (!status.getStatus()) {
+            if (user.getRole() == RoleStatus.TEACHER) {
+                List<Course> courses = courseRepository.findByTeacherIdAndIsDeletedFalse(user.getId());
+                for (Course course : courses) {
+                    course.setStatus(CourseStatus.ARCHIVED);
+                }
+            }
+        }
+        else {
+            if (user.getRole() == RoleStatus.TEACHER) {
+                List<Course> courses = courseRepository.findByTeacherIdAndIsDeletedFalse(user.getId());
+                for (Course course : courses) {
+                    course.setStatus(CourseStatus.PUBLISHED);
+                }
+            }
+        }
         User savedUser = userRepository.save(user);
         return UserResponse.builder()
                 .userId(savedUser.getId())

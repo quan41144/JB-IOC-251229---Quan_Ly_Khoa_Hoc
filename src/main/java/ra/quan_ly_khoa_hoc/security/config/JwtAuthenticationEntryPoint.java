@@ -44,6 +44,10 @@ public class JwtAuthenticationEntryPoint implements AuthenticationEntryPoint {
             body.put("message", "Chuỗi token rỗng!");
             body.put("code", HttpStatus.UNAUTHORIZED);
         }
+        else if ("INVALID_TOKEN_REVOKED".equals(message)) {
+            body.put("message", "Token đã bị vô hiệu hóa!");
+            body.put("code", HttpStatus.UNAUTHORIZED);
+        }
         else {
             body.put("message", "Lỗi xác thực token: " + message);
             body.put("code", HttpStatus.UNAUTHORIZED);

@@ -8,4 +8,5 @@ public interface AuthService {
     LoginResponse login(LoginRequest loginRequest);
     UserResponse getMe(String username);
     Boolean verifyToken(String token);
+    void logout();
 }

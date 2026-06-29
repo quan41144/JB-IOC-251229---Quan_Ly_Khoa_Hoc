@@ -10,6 +10,7 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import ra.quan_ly_khoa_hoc.exception.AccessDeniedException;
 import ra.quan_ly_khoa_hoc.exception.BadRequestException;
 import ra.quan_ly_khoa_hoc.exception.ConflictException;
 import ra.quan_ly_khoa_hoc.exception.ResourceNotFoundException;
@@ -90,6 +91,16 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(new ApiResponse<>(
                 false,
                 "Tài khoản của bạn đã bị khóa hoặc bị vô hiệu hóa!",
+                null,
+                ex.getMessage(),
+                LocalDateTime.now()
+        ), HttpStatus.FORBIDDEN);
+    }
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<ApiResponse<?>> handleAccessDeniedException(AccessDeniedException ex) {
+        return new ResponseEntity<>(new ApiResponse<>(
+                false,
+                "Từ chối truy cập!",
                 null,
                 ex.getMessage(),
                 LocalDateTime.now()

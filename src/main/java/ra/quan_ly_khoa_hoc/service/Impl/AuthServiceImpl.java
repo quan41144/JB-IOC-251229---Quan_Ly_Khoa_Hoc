@@ -1,20 +1,28 @@
 package ra.quan_ly_khoa_hoc.service.Impl;
 
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
 import ra.quan_ly_khoa_hoc.exception.ResourceNotFoundException;
 import ra.quan_ly_khoa_hoc.model.dto.request.LoginRequest;
 import ra.quan_ly_khoa_hoc.model.dto.response.LoginResponse;
 import ra.quan_ly_khoa_hoc.model.dto.response.UserResponse;
+import ra.quan_ly_khoa_hoc.model.entity.InvalidateToken;
 import ra.quan_ly_khoa_hoc.model.entity.User;
+import ra.quan_ly_khoa_hoc.repository.InvalidateTokenRepository;
 import ra.quan_ly_khoa_hoc.repository.UserRepository;
 import ra.quan_ly_khoa_hoc.security.jwt.JwtProvider;
 import ra.quan_ly_khoa_hoc.security.user_detail.CustomUserDetails;
 import ra.quan_ly_khoa_hoc.service.AuthService;
+
+import java.time.LocalDateTime;
 
 @Service
 @RequiredArgsConstructor
@@ -22,6 +30,7 @@ public class AuthServiceImpl implements AuthService {
     private final AuthenticationManager authenticationManager;
     private final JwtProvider jwtProvider;
     private final UserRepository userRepository;
+    private final InvalidateTokenRepository invalidateTokenRepository;
 
     @Override
     public LoginResponse login(LoginRequest loginRequest) {
@@ -60,5 +69,27 @@ public class AuthServiceImpl implements AuthService {
         catch (Exception e) {
             return false;
         }
+    }
+
+    @Override
+    @Transactional
+    public void logout() {
+        ServletRequestAttributes attributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
+        if (attributes != null) {
+            HttpServletRequest request = attributes.getRequest();
+            String authHeader = request.getHeader("Authorization");
+            if (authHeader != null && authHeader.startsWith("Bearer ")) {
+                String token = authHeader.substring(7);
+                LocalDateTime expiryDate = jwtProvider.getExpirationDateFromToken(token);
+                if (!invalidateTokenRepository.existsByToken(token)) {
+                    InvalidateToken invalidateToken = InvalidateToken.builder()
+                            .token(token)
+                            .expiryDate(expiryDate)
+                            .build();
+                    invalidateTokenRepository.save(invalidateToken);
+                }
+            }
+        }
+        SecurityContextHolder.clearContext();
     }
 }

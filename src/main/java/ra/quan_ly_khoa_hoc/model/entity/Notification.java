@@ -30,7 +30,7 @@ public class Notification {
     @Column(name = "is_read", nullable = false, columnDefinition = "boolean default false")
     @Builder.Default
     private Boolean isRead = false;
-    @Column(name = "created_at", nullable = false, columnDefinition = "timestamp default current_timestamp")
+    @Column(name = "created_at", nullable = false)
     @Builder.Default
     private LocalDateTime createdAt = LocalDateTime.now();
     @PrePersist

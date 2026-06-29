@@ -23,5 +23,21 @@ public interface CourseRepository extends JpaRepository<Course, Integer> {
 """)
     List<Course> findArchivedCoursesByStudentId(@Param("studentId") Integer studentId);
     List<Course> findByTeacherIdAndIsDeletedFalse(Integer teacherId);
+    @Query("""
+        select c from Course c
+        where (c.title ilike concat('%', :key_word, '%')
+        or c.description ilike concat('%', :key_word, '%'))
+        and c.isDeleted = false
+""")
+    List<Course> findByKeywordAndIsDeletedFalse(@Param("key_word") String keyword);
+    @Query("""
+        select c from Course c
+        where (c.title ilike concat('%', :key_word, '%')
+        or c.description ilike concat('%', :key_word, '%'))
+        and c.teacher.id = :teacher_id
+        and c.isDeleted = false
+""")
+    List<Course> findByKeywordAndIsDeletedFalseAndTeacherId(@Param("key_word") String keyword,@Param("teacher_id") Integer teacherId);
+
     Optional<Course> findByIdAndIsDeletedFalse(Integer id);
 }

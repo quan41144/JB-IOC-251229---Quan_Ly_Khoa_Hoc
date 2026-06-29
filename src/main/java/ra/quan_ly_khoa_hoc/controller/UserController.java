@@ -20,7 +20,7 @@ import java.time.LocalDateTime;
 public class UserController {
     private final UserService userService;
     @GetMapping
-    public ResponseEntity<ApiResponse<?>> getAllUsers(@Valid @RequestParam(required = false) RoleStatus role, @Valid @RequestParam(required = false) Boolean status) {
+    public ResponseEntity<ApiResponse<?>> getAllUsers(@Valid @RequestParam(value = "role", required = false) RoleStatus role, @Valid @RequestParam(value = "status", required = false) Boolean status) {
         return new ResponseEntity<>(new ApiResponse<>(
                 true,
                 "Lấy danh sách thành công!",

@@ -11,6 +11,7 @@ import ra.quan_ly_khoa_hoc.model.dto.request.CreateLessonRequest;
 import ra.quan_ly_khoa_hoc.model.dto.request.UpdateCourseRequest;
 import ra.quan_ly_khoa_hoc.model.dto.request.UpdateCourseStatusRequest;
 import ra.quan_ly_khoa_hoc.model.dto.response.ApiResponse;
+import ra.quan_ly_khoa_hoc.model.entity.CourseStatus;
 import ra.quan_ly_khoa_hoc.security.user_detail.CustomUserDetails;
 import ra.quan_ly_khoa_hoc.service.CourseService;
 import ra.quan_ly_khoa_hoc.service.LessonService;
@@ -25,12 +26,11 @@ public class CourseController {
     private final LessonService lessonService;
 
     @GetMapping
-    public ResponseEntity<ApiResponse<?>> getAllCourses(@Valid Authentication authentication) {
-        CustomUserDetails customUserDetails = (CustomUserDetails) authentication.getPrincipal();
+    public ResponseEntity<ApiResponse<?>> getAllCourses(@Valid @RequestParam(value = "search", required = false) String keyword, @Valid @RequestParam(value = "teacher_id", required = false) Integer teacherId, @Valid @RequestParam(value = "status", required = false)CourseStatus status) {
         return new ResponseEntity<>(new ApiResponse<>(
                 true,
                 "Lấy danh sách tất cả khóa học thành công!",
-                courseService.getAllCourses(),
+                courseService.getAllCourses(keyword, teacherId, status),
                 null,
                 LocalDateTime.now()
         ), HttpStatus.OK);
