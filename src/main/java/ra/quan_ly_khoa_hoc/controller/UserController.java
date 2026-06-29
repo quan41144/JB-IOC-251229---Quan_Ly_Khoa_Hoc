@@ -6,9 +6,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
-import ra.quan_ly_khoa_hoc.model.dto.request.CreateUserRequest;
-import ra.quan_ly_khoa_hoc.model.dto.request.UpdateUserRoleRequest;
-import ra.quan_ly_khoa_hoc.model.dto.request.UpdateUserStatusRequest;
+import ra.quan_ly_khoa_hoc.model.dto.request.*;
 import ra.quan_ly_khoa_hoc.model.dto.response.ApiResponse;
 import ra.quan_ly_khoa_hoc.model.entity.RoleStatus;
 import ra.quan_ly_khoa_hoc.security.user_detail.CustomUserDetails;
@@ -80,6 +78,27 @@ public class UserController {
         return new ResponseEntity<>(new ApiResponse<>(
                 true,
                 "Xóa người dùng có id " + user_id + " khỏi hệ thống thành công!",
+                null,
+                null,
+                LocalDateTime.now()
+        ), HttpStatus.OK);
+    }
+    @PutMapping("/{user_id}")
+    public ResponseEntity<ApiResponse<?>> updateUser(@Valid @PathVariable("user_id") Integer userId, @Valid @RequestBody UpdateUserRequest updateUserRequest) {
+        return new ResponseEntity<>(new ApiResponse<>(
+                true,
+                "Cập nhật thông tin cá nhân người dùng thành công!",
+                userService.updateUser(userId, updateUserRequest),
+                null,
+                LocalDateTime.now()
+        ), HttpStatus.OK);
+    }
+    @PutMapping("/{user_id}/password")
+    public ResponseEntity<ApiResponse<?>> updateUserPassword(@Valid @PathVariable("user_id") Integer userId, @Valid @RequestBody UpdateUserPasswordRequest updateUserPasswordRequest) {
+        userService.updateUserPassword(userId, updateUserPasswordRequest);
+        return new ResponseEntity<>(new ApiResponse<>(
+                true,
+                "Cập nhật mật khẩu thành công!",
                 null,
                 null,
                 LocalDateTime.now()

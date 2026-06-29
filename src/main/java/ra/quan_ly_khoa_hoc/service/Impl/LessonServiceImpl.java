@@ -7,6 +7,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 import ra.quan_ly_khoa_hoc.exception.ConflictException;
 import ra.quan_ly_khoa_hoc.exception.ResourceNotFoundException;
@@ -14,15 +15,17 @@ import ra.quan_ly_khoa_hoc.model.dto.request.CreateLessonRequest;
 import ra.quan_ly_khoa_hoc.model.dto.request.UpdateLessonPublishRequest;
 import ra.quan_ly_khoa_hoc.model.dto.request.UpdateLessonRequest;
 import ra.quan_ly_khoa_hoc.model.dto.response.LessonResponse;
-import ra.quan_ly_khoa_hoc.model.entity.Course;
-import ra.quan_ly_khoa_hoc.model.entity.CourseStatus;
-import ra.quan_ly_khoa_hoc.model.entity.Lesson;
+import ra.quan_ly_khoa_hoc.model.entity.*;
 import ra.quan_ly_khoa_hoc.repository.CourseRepository;
 import ra.quan_ly_khoa_hoc.repository.EnrollmentRepository;
+import ra.quan_ly_khoa_hoc.repository.LessonProgressRepository;
 import ra.quan_ly_khoa_hoc.repository.LessonRepository;
 import ra.quan_ly_khoa_hoc.security.user_detail.CustomUserDetails;
 import ra.quan_ly_khoa_hoc.service.LessonService;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 
@@ -32,6 +35,7 @@ public class LessonServiceImpl implements LessonService {
     private final LessonRepository lessonRepository;
     private final CourseRepository courseRepository;
     private final EnrollmentRepository enrollmentRepository;
+    private final LessonProgressRepository lessonProgressRepository;
     private final Cloudinary cloudinary;
 
     @Override
@@ -211,12 +215,58 @@ public class LessonServiceImpl implements LessonService {
     }
 
     @Override
+    @Transactional
     public LessonResponse updateLessonPublish(Integer lessonId, UpdateLessonPublishRequest updateLessonPublishRequest) {
         Lesson lesson = lessonRepository.findById(lessonId)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tồn tại bài học có id " + lessonId));
         Course course = courseRepository.findByIdAndIsDeletedFalse(lesson.getCourse().getId())
                 .orElseThrow(() -> new ResourceNotFoundException("Không tồn tại khóa học có id " + lessonId));
-        lesson.setIsPublished(updateLessonPublishRequest.getPublish());
+        if (!lesson.getIsPublished().equals(updateLessonPublishRequest.getPublish())) {
+            Boolean publish = updateLessonPublishRequest.getPublish();
+            if (!publish) {
+                lessonProgressRepository.deleteByLessonId(lessonId);
+            }
+            else {
+                List<Enrollment> enrollments = course.getEnrollments();
+                if (enrollments != null && !enrollments.isEmpty()) {
+                    List<LessonProgress> newProgresses = enrollments.stream()
+                            .map(enrollment -> LessonProgress.builder()
+                                    .enrollment(enrollment)
+                                    .lesson(lesson)
+                                    .isCompleted(false)
+                                    .completedAt(null).build()
+                            ).toList();
+                    lessonProgressRepository.saveAll(newProgresses);
+                }
+            }
+            lesson.setIsPublished(publish);
+            lessonRepository.save(lesson);
+        }
+        List<Enrollment> enrollments = course.getEnrollments();
+        if (enrollments != null && !enrollments.isEmpty()) {
+            for (Enrollment enrollment : enrollments) {
+                Long countLessons = enrollmentRepository.countALLLessonProgressesByEnrollmentId(enrollment.getId());
+                Long countLessonsCompleted = enrollmentRepository.countAllLessonProgressesCompletedByEnrollmentId(enrollment.getId());
+                if (countLessons != null && countLessons > 0) {
+                    BigDecimal progressPercentage = BigDecimal.valueOf(countLessonsCompleted)
+                            .multiply(BigDecimal.valueOf(100))
+                            .divide(BigDecimal.valueOf(countLessons), 2, RoundingMode.HALF_UP);
+                    enrollment.setProgressPercentage(progressPercentage);
+                }
+                else {
+                    enrollment.setProgressPercentage(BigDecimal.ZERO);
+                }
+                if (enrollment.getProgressPercentage().compareTo(BigDecimal.valueOf(100)) == 0) {
+                    enrollment.setCompletionDate(LocalDateTime.now());
+                    enrollment.setStatus(EnrollmentStatus.COMPLETED);
+                }
+                else {
+                    enrollment.setCompletionDate(null);
+                    enrollment.setStatus(EnrollmentStatus.ENROLLED);
+                }
+                enrollmentRepository.save(enrollment);
+            }
+        }
         Lesson savedLesson = lessonRepository.save(lesson);
         return LessonResponse.builder()
                 .lessonId(lessonId)

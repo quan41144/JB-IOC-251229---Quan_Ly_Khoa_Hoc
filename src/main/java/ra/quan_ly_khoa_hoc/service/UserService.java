@@ -1,8 +1,6 @@
 package ra.quan_ly_khoa_hoc.service;
 
-import ra.quan_ly_khoa_hoc.model.dto.request.CreateUserRequest;
-import ra.quan_ly_khoa_hoc.model.dto.request.UpdateUserRoleRequest;
-import ra.quan_ly_khoa_hoc.model.dto.request.UpdateUserStatusRequest;
+import ra.quan_ly_khoa_hoc.model.dto.request.*;
 import ra.quan_ly_khoa_hoc.model.dto.response.UserResponse;
 import ra.quan_ly_khoa_hoc.model.entity.RoleStatus;
 
@@ -15,4 +13,6 @@ public interface UserService {
     UserResponse updateUserRole(Integer targetId, UpdateUserRoleRequest role, Integer currentUserId);
     UserResponse updateUserStatus(Integer targetId, UpdateUserStatusRequest status, Integer currentUserId);
     void deleteUser(Integer targetId, Integer currentUserId);
+    UserResponse updateUser(Integer userId, UpdateUserRequest updateUserRequest);
+    void updateUserPassword(Integer userId, UpdateUserPasswordRequest updateUserPasswordRequest);
 }

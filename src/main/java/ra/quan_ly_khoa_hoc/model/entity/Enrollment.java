@@ -28,7 +28,7 @@ public class Enrollment {
     @ToString.Exclude
     @EqualsAndHashCode.Exclude
     private Course course;
-    @Column(name = "enrollment_date", nullable = false, columnDefinition = "timestamp default current_timestamp")
+    @Column(name = "enrollment_date", nullable = false)
     @Builder.Default
     private LocalDateTime enrollmentDate = LocalDateTime.now();
     @Column(name = "status", nullable = false)
@@ -37,7 +37,7 @@ public class Enrollment {
     private EnrollmentStatus status = EnrollmentStatus.ENROLLED;
     @Column(name = "completion_date")
     private LocalDateTime completionDate;
-    @Column(name = "progress_percentage", nullable = false, columnDefinition = "numeric(5,2) default 0.00 check (progress_percentage >= 0 and progress_percentage <= 100)")
+    @Column(name = "progress_percentage", nullable = false, columnDefinition = "numeric(5,2) check (progress_percentage >= 0 and progress_percentage <= 100)")
     private BigDecimal progressPercentage = BigDecimal.ZERO;
     @OneToMany(mappedBy = "enrollment", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     @ToString.Exclude

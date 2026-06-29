@@ -1,20 +1,22 @@
 package ra.quan_ly_khoa_hoc.service.Impl;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import ra.quan_ly_khoa_hoc.exception.BadRequestException;
 import ra.quan_ly_khoa_hoc.exception.ConflictException;
 import ra.quan_ly_khoa_hoc.exception.ResourceNotFoundException;
-import ra.quan_ly_khoa_hoc.model.dto.request.CreateUserRequest;
-import ra.quan_ly_khoa_hoc.model.dto.request.UpdateUserRoleRequest;
-import ra.quan_ly_khoa_hoc.model.dto.request.UpdateUserStatusRequest;
+import ra.quan_ly_khoa_hoc.model.dto.request.*;
 import ra.quan_ly_khoa_hoc.model.dto.response.UserResponse;
 import ra.quan_ly_khoa_hoc.model.entity.RoleStatus;
 import ra.quan_ly_khoa_hoc.model.entity.User;
 import ra.quan_ly_khoa_hoc.repository.UserRepository;
+import ra.quan_ly_khoa_hoc.security.user_detail.CustomUserDetails;
 import ra.quan_ly_khoa_hoc.service.UserService;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
@@ -151,6 +153,49 @@ public class UserServiceImpl implements UserService {
         user.setFullName("Tài khoản vô danh");
         user.setIsDeleted(true);
         user.setIsActive(false);
+        userRepository.save(user);
+    }
+
+    @Override
+    @Transactional
+    public UserResponse updateUser(Integer userId, UpdateUserRequest updateUserRequest) {
+        CustomUserDetails customUserDetails = (CustomUserDetails) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        User user = userRepository.findByIdAndIsDeletedFalse(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tồn tại tài khoản có id " + userId));
+        if (!user.getId().equals(customUserDetails.getUserId()) && customUserDetails.getRole() != RoleStatus.ADMIN) {
+            throw new ResourceNotFoundException("Không tồn tại tài khoản có id " + userId);
+        }
+        if (updateUserRequest.getEmail() != null && !updateUserRequest.getEmail().isEmpty() && !user.getEmail().equals(updateUserRequest.getEmail())) {
+            if (userRepository.findByEmail(updateUserRequest.getEmail()).isPresent()) {
+                throw new ConflictException("Email " + updateUserRequest.getEmail() + " đã tồn tại!");
+            }
+            user.setEmail(updateUserRequest.getEmail());
+        }
+        if (updateUserRequest.getFullName() != null && !user.getFullName().equals(updateUserRequest.getFullName())) {
+            user.setFullName(updateUserRequest.getFullName());
+        }
+        userRepository.save(user);
+        return UserResponse.builder()
+                .userId(user.getId())
+                .username(user.getUsername())
+                .email(user.getEmail())
+                .fullName(user.getFullName())
+                .role(user.getRole())
+                .isActive(user.getIsActive())
+                .createdAt(user.getCreatedAt())
+                .build();
+    }
+
+    @Override
+    @Transactional
+    public void updateUserPassword(Integer userId, UpdateUserPasswordRequest updateUserPasswordRequest) {
+        CustomUserDetails customUserDetails = (CustomUserDetails) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        User user = userRepository.findByIdAndIsDeletedFalse(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tồn tại tài khoản có id " + userId));
+        if (!user.getId().equals(customUserDetails.getUserId()) && customUserDetails.getRole() != RoleStatus.ADMIN) {
+            throw new ResourceNotFoundException("Không tồn tại tài khoản có id " + userId);
+        }
+        user.setPassword(passwordEncoder.encode(updateUserPasswordRequest.getNewPassword()));
         userRepository.save(user);
     }
 }
