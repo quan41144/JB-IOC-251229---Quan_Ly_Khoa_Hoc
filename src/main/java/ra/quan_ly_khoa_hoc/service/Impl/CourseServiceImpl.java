@@ -37,9 +37,19 @@ public class CourseServiceImpl implements CourseService {
     public List<CourseResponse> getAllCourses(String keyword, Integer teacherId, CourseStatus status) {
         List<Course> courses;
         if ((keyword != null && !keyword.trim().isEmpty()) && teacherId != null) {
+            User user = userRepository.findByIdAndIsDeletedFalse(teacherId)
+                    .orElseThrow(() -> new ResourceNotFoundException("Không tồn tại giáo viên có id " + teacherId));
+            if (user.getRole() != RoleStatus.TEACHER) {
+                throw new ResourceNotFoundException("Không tồn tại giáo viên có id " + teacherId);
+            }
             courses = courseRepository.findByKeywordAndIsDeletedFalseAndTeacherId(keyword, teacherId);
         }
         else if (!(keyword != null && !keyword.trim().isEmpty()) && teacherId != null) {
+            User user = userRepository.findByIdAndIsDeletedFalse(teacherId)
+                    .orElseThrow(() -> new ResourceNotFoundException("Không tồn tại giáo viên có id " + teacherId));
+            if (user.getRole() != RoleStatus.TEACHER) {
+                throw new ResourceNotFoundException("Không tồn tại giáo viên có id " + teacherId);
+            }
             courses = courseRepository.findByTeacherIdAndIsDeletedFalse(teacherId);
         }
         else if ((keyword != null && !keyword.trim().isEmpty()) && teacherId == null) {
@@ -76,7 +86,7 @@ public class CourseServiceImpl implements CourseService {
         else {
             resultCourses = courses.stream()
                     .filter(c -> c.getStatus() == CourseStatus.PUBLISHED
-                            || c.getTeacher().getId().equals(currentUserId)
+                            || c.getStatus() == CourseStatus.ARCHIVED
                     ).toList();
         }
         return resultCourses.stream()
@@ -107,19 +117,18 @@ public class CourseServiceImpl implements CourseService {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         if (course.getStatus() == CourseStatus.DRAFT) {
             if (isTeacher) {
-                CustomUserDetails customUserDetails = (CustomUserDetails) auth.getPrincipal();
-                if (!course.getTeacher().getId().equals(customUserDetails.getUser().getId())) {
-                    throw new ResourceNotFoundException("Khóa học có id " + id + " không tồn tại!");
-                }
+                throw new ResourceNotFoundException("Khóa học có id " + id + " không tồn tại!");
             }
             else if (isStudent) {
                 throw new ResourceNotFoundException("Khóa học có id " + id + " không tồn tại!");
             }
         }
-        if (course.getStatus() == CourseStatus.ARCHIVED && isStudent) {
-            CustomUserDetails customUserDetails = (CustomUserDetails) auth.getPrincipal();
-            if (!enrollmentRepository.existsByStudentIdAndCourseId(customUserDetails.getUser().getId(), course.getId())) {
-                throw new ResourceNotFoundException("Khóa học có id " + id + " không tồn tại!");
+        if (course.getStatus() == CourseStatus.ARCHIVED) {
+            if (isStudent) {
+                CustomUserDetails customUserDetails = (CustomUserDetails) auth.getPrincipal();
+                if (!enrollmentRepository.existsByStudentIdAndCourseId(customUserDetails.getUser().getId(), course.getId())) {
+                    throw new ResourceNotFoundException("Khóa học có id " + id + " không tồn tại!");
+                }
             }
         }
         List<Lesson> lessons;

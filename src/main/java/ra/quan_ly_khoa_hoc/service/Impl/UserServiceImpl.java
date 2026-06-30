@@ -111,6 +111,9 @@ public class UserServiceImpl implements UserService {
         if (user.getRole() == RoleStatus.ADMIN && !user.getId().equals(currentUserId)) {
             throw new BadRequestException("Không được thay đổi role của admin khác!");
         }
+        if (user.getRole() == RoleStatus.TEACHER && role.getRole() == RoleStatus.STUDENT) {
+            throw new BadRequestException("Không được hạ quyền của giáo viên xuống!");
+        }
         user.setRole(role.getRole());
         User savedUser = userRepository.save(user);
         return UserResponse.builder()
@@ -130,7 +133,7 @@ public class UserServiceImpl implements UserService {
         User user = userRepository.findByIdAndIsDeletedFalse(targetId)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tồn tại tài khoản có id " + targetId));
         if (user.getId().equals(currentId)) {
-            throw new BadRequestException("Không được tự khóa tài khoản của mình!");
+            throw new BadRequestException("Không được tự thay đổi trạng thái hoạt động tài khoản của mình!");
         }
         if (user.getRole() == RoleStatus.ADMIN) {
             throw new BadRequestException("Không được thay đổi trạng thái hoạt động của admin khác!");
@@ -171,7 +174,7 @@ public class UserServiceImpl implements UserService {
         if (user.getId().equals(currentId)) {
             throw new BadRequestException("Không được tự xóa tài khoản của mình!");
         }
-        if (user.getRole() == RoleStatus.ADMIN && !user.getId().equals(currentId)) {
+        if (user.getRole() == RoleStatus.ADMIN) {
             throw new BadRequestException("Không được xóa tài khoản admin khác!");
         }
         user.setFullName("Tài khoản vô danh");
@@ -186,8 +189,10 @@ public class UserServiceImpl implements UserService {
         CustomUserDetails customUserDetails = (CustomUserDetails) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         User user = userRepository.findByIdAndIsDeletedFalse(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tồn tại tài khoản có id " + userId));
-        if (!user.getId().equals(customUserDetails.getUser().getId()) && customUserDetails.getUser().getRole() != RoleStatus.ADMIN) {
-            throw new ResourceNotFoundException("Không tồn tại tài khoản có id " + userId);
+        if (customUserDetails.getUser().getRole() != RoleStatus.ADMIN) {
+            if (!customUserDetails.getUser().getId().equals(user.getId())) {
+                throw new BadRequestException("Không có quyền sửa!");
+            }
         }
         if (updateUserRequest.getEmail() != null && !updateUserRequest.getEmail().isEmpty() && !user.getEmail().equals(updateUserRequest.getEmail())) {
             if (userRepository.findByEmail(updateUserRequest.getEmail()).isPresent()) {
@@ -216,6 +221,11 @@ public class UserServiceImpl implements UserService {
         CustomUserDetails customUserDetails = (CustomUserDetails) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         User user = userRepository.findByIdAndIsDeletedFalse(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tồn tại tài khoản có id " + userId));
+        if (customUserDetails.getUser().getRole() != RoleStatus.ADMIN) {
+            if (!customUserDetails.getUser().getId().equals(user.getId())) {
+                throw new BadRequestException("Không có quyền sửa mật khẩu!");
+            }
+        }
         if (!passwordEncoder.matches(updateUserPasswordRequest.getOldPassword(), user.getPassword())) {
             throw new BadRequestException("Mật khẩu hiện tại không đúng!");
         }

@@ -32,10 +32,24 @@ public class ReviewServiceImpl implements ReviewService {
         if (courseRepository.findByIdAndIsDeletedFalse(courseId).isEmpty()) {
                 throw new ResourceNotFoundException("Không tồn tại khóa học có id " +  courseId);
         }
+        CustomUserDetails customUserDetails = (CustomUserDetails) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        User user = customUserDetails.getUser();
         Course course = courseRepository.findByIdAndIsDeletedFalse(courseId)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tồn tại khóa học có id " +  courseId));
-        if (!course.getStatus().equals(CourseStatus.PUBLISHED)) {
+        if (course.getStatus().equals(CourseStatus.DRAFT) && !user.getRole().equals(RoleStatus.ADMIN)) {
             throw new ResourceNotFoundException("Không tồn tại khóa học có id " +  courseId);
+        }
+        if (course.getStatus().equals(CourseStatus.ARCHIVED)) {
+            if (user.getRole().equals(RoleStatus.STUDENT)) {
+                if (!enrollmentRepository.existsByStudentIdAndCourseId(user.getId(), courseId)) {
+                    throw new ResourceNotFoundException("Không tồn tại khóa học có id " +  courseId);
+                }
+            }
+            else if (user.getRole().equals(RoleStatus.TEACHER)) {
+                if (!course.getTeacher().getId().equals(user.getId())) {
+                    throw new ResourceNotFoundException("Không tồn tại khóa học có id " +  courseId);
+                }
+            }
         }
         List<Review> reviews = reviewRepository.findReviewsByCourseId(courseId);
         return reviews.stream()

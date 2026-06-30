@@ -291,8 +291,14 @@ public class LessonServiceImpl implements LessonService {
     public void deleteLesson(Integer lessonId) {
         Lesson lesson = lessonRepository.findById(lessonId)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tồn tại bài học có id " + lessonId));
+        Course course = courseRepository.findByIdAndIsDeletedFalse(lesson.getCourse().getId())
+                .orElseThrow(() -> new ResourceNotFoundException("Không tồn tại khóa học có id " + lessonId));
         if (lesson.getLessonProgress() != null && !lesson.getLessonProgress().isEmpty()) {
             throw new ConflictException("Không thể xóa bài học khi đang có học sinh theo học!");
+        }
+        CustomUserDetails customUserDetails = (CustomUserDetails) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        if (customUserDetails.getUser().getRole() == RoleStatus.TEACHER && !course.getTeacher().getId().equals(customUserDetails.getUser().getId())) {
+            throw new BadRequestException("Bạn không có quyền chỉnh xóa khóa học này!");
         }
         lessonRepository.delete(lesson);
     }

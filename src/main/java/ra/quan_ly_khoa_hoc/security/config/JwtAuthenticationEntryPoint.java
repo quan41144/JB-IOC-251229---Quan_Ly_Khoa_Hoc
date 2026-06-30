@@ -49,7 +49,7 @@ public class JwtAuthenticationEntryPoint implements AuthenticationEntryPoint {
             body.put("code", HttpStatus.UNAUTHORIZED);
         }
         else {
-            body.put("message", "Lỗi xác thực token: " + message);
+            body.put("message", "Lỗi xác thực token: " + "Không có quyền truy cập!");
             body.put("code", HttpStatus.UNAUTHORIZED);
         }
         ObjectMapper mapper = new ObjectMapper();

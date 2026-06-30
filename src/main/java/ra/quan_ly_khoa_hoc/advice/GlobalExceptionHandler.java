@@ -2,6 +2,7 @@ package ra.quan_ly_khoa_hoc.advice;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.DisabledException;
 import org.springframework.security.authentication.LockedException;
@@ -105,5 +106,15 @@ public class GlobalExceptionHandler {
                 ex.getMessage(),
                 LocalDateTime.now()
         ), HttpStatus.FORBIDDEN);
+    }
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<ApiResponse<?>> handleHttpMessageNotReadableException(HttpMessageNotReadableException ex) {
+        return new ResponseEntity<>(new ApiResponse<>(
+                false,
+                "Định dạng dữ liệu không hợp lệ!",
+                null,
+                ex.getMessage(),
+                LocalDateTime.now()
+        ), HttpStatus.BAD_REQUEST);
     }
 }

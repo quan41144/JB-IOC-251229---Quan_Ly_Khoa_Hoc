@@ -12,7 +12,7 @@ public interface ReportRepository extends JpaRepository<Course, Integer> {
     @Query("""
         select c from Course c
         left join c.enrollments e
-        where c.isDeleted = false and c.status = ra.quan_ly_khoa_hoc.model.entity.CourseStatus.PUBLISHED
+        where c.isDeleted = false and (c.status = ra.quan_ly_khoa_hoc.model.entity.CourseStatus.PUBLISHED or c.status = ra.quan_ly_khoa_hoc.model.entity.CourseStatus.ARCHIVED)
         group by c.id
         order by count(e.id) desc
 """)
