@@ -155,8 +155,8 @@ public class EnrollmentServiceImpl implements EnrollmentService {
         lessonProgress.setIsCompleted(true);
         lessonProgress.setCompletedAt(LocalDateTime.now());
         lessonProgressRepository.save(lessonProgress);
-        Long countLessons = enrollmentRepository.countALLLessonProgressesByEnrollmentId(enrollmentId);
-        Long countLessonsCompleted = enrollmentRepository.countAllLessonProgressesCompletedByEnrollmentId(enrollmentId);
+        Long countLessons = lessonProgressRepository.countALLLessonProgressesByEnrollmentId(enrollmentId);
+        Long countLessonsCompleted = lessonProgressRepository.countAllLessonProgressesCompletedByEnrollmentId(enrollmentId);
         if (countLessons != null && countLessons > 0) {
             BigDecimal progressPercentage = BigDecimal.valueOf(countLessonsCompleted)
                     .multiply(BigDecimal.valueOf(100))

@@ -6,15 +6,13 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
-import ra.quan_ly_khoa_hoc.model.dto.request.CreateCourseRequest;
-import ra.quan_ly_khoa_hoc.model.dto.request.CreateLessonRequest;
-import ra.quan_ly_khoa_hoc.model.dto.request.UpdateCourseRequest;
-import ra.quan_ly_khoa_hoc.model.dto.request.UpdateCourseStatusRequest;
+import ra.quan_ly_khoa_hoc.model.dto.request.*;
 import ra.quan_ly_khoa_hoc.model.dto.response.ApiResponse;
 import ra.quan_ly_khoa_hoc.model.entity.CourseStatus;
 import ra.quan_ly_khoa_hoc.security.user_detail.CustomUserDetails;
 import ra.quan_ly_khoa_hoc.service.CourseService;
 import ra.quan_ly_khoa_hoc.service.LessonService;
+import ra.quan_ly_khoa_hoc.service.ReviewService;
 
 import java.time.LocalDateTime;
 
@@ -24,6 +22,7 @@ import java.time.LocalDateTime;
 public class CourseController {
     private final CourseService courseService;
     private final LessonService lessonService;
+    private final ReviewService reviewService;
 
     @GetMapping
     public ResponseEntity<ApiResponse<?>> getAllCourses(@Valid @RequestParam(value = "search", required = false) String keyword, @Valid @RequestParam(value = "teacher_id", required = false) Integer teacherId, @Valid @RequestParam(value = "status", required = false)CourseStatus status) {
@@ -102,6 +101,26 @@ public class CourseController {
                 true,
                 "Thêm mới bài học thành công!",
                 lessonService.createLesson(courseId, createLessonRequest),
+                null,
+                LocalDateTime.now()
+        ), HttpStatus.CREATED);
+    }
+    @GetMapping("/{course_id}/reviews")
+    public ResponseEntity<ApiResponse<?>> getAllReviews(@Valid @PathVariable("course_id") Integer courseId) {
+        return new ResponseEntity<>(new ApiResponse<>(
+                true,
+                "Lấy danh sách đánh giá/bình luận về khóa học thành công!",
+                reviewService.getAllReviewsByCourseId(courseId),
+                null,
+                LocalDateTime.now()
+        ), HttpStatus.OK);
+    }
+    @PostMapping("/{course_id}/reviews")
+    public ResponseEntity<ApiResponse<?>> createReview(@Valid @PathVariable("course_id") Integer courseId, @Valid @RequestBody CreateReviewRequest createReviewRequest) {
+        return new ResponseEntity<>(new ApiResponse<>(
+                true,
+                "Tạo bài đánh giá/bình luận về khóa học thành công!",
+                reviewService.createReview(courseId, createReviewRequest),
                 null,
                 LocalDateTime.now()
         ), HttpStatus.CREATED);

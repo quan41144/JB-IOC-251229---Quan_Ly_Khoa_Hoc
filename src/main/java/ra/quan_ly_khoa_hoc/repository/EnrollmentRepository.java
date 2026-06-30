@@ -14,15 +14,6 @@ import java.util.Optional;
 public interface EnrollmentRepository extends JpaRepository<Enrollment, Integer> {
     Boolean existsByStudentIdAndCourseId(Integer studentId, Integer courseId);
     List<Enrollment> findAllByStudentIdAndStatus(Integer studentId, EnrollmentStatus status);
+    List<Enrollment> findAllByStudentId(Integer studentId);
     Optional<Enrollment> findByIdAndStudentId(Integer id, Integer studentId);
-    @Query("""
-        select count(lp) from LessonProgress lp
-        where lp.enrollment.id = :enrollment_id
-""")
-    Long countALLLessonProgressesByEnrollmentId(@Param("enrollment_id") Integer enrollmentId);
-    @Query("""
-        select count(lp) from LessonProgress lp
-        where lp.enrollment.id = :enrollment_id and lp.isCompleted = true
-""")
-    Long countAllLessonProgressesCompletedByEnrollmentId(@Param("enrollment_id") Integer enrollmentId);
 }

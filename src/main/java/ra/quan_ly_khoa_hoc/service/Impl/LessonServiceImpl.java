@@ -6,6 +6,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.parameters.P;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -15,6 +16,7 @@ import ra.quan_ly_khoa_hoc.exception.ResourceNotFoundException;
 import ra.quan_ly_khoa_hoc.model.dto.request.CreateLessonRequest;
 import ra.quan_ly_khoa_hoc.model.dto.request.UpdateLessonPublishRequest;
 import ra.quan_ly_khoa_hoc.model.dto.request.UpdateLessonRequest;
+import ra.quan_ly_khoa_hoc.model.dto.response.ContentPreviewResponse;
 import ra.quan_ly_khoa_hoc.model.dto.response.LessonResponse;
 import ra.quan_ly_khoa_hoc.model.entity.*;
 import ra.quan_ly_khoa_hoc.repository.CourseRepository;
@@ -249,8 +251,8 @@ public class LessonServiceImpl implements LessonService {
         List<Enrollment> enrollments = course.getEnrollments();
         if (enrollments != null && !enrollments.isEmpty()) {
             for (Enrollment enrollment : enrollments) {
-                Long countLessons = enrollmentRepository.countALLLessonProgressesByEnrollmentId(enrollment.getId());
-                Long countLessonsCompleted = enrollmentRepository.countAllLessonProgressesCompletedByEnrollmentId(enrollment.getId());
+                Long countLessons = lessonProgressRepository.countALLLessonProgressesByEnrollmentId(enrollment.getId());
+                Long countLessonsCompleted = lessonProgressRepository.countAllLessonProgressesCompletedByEnrollmentId(enrollment.getId());
                 if (countLessons != null && countLessons > 0) {
                     BigDecimal progressPercentage = BigDecimal.valueOf(countLessonsCompleted)
                             .multiply(BigDecimal.valueOf(100))
@@ -293,5 +295,52 @@ public class LessonServiceImpl implements LessonService {
             throw new ConflictException("Không thể xóa bài học khi đang có học sinh theo học!");
         }
         lessonRepository.delete(lesson);
+    }
+
+    @Override
+    public ContentPreviewResponse getContentPreview(Integer lessonId) {
+        Lesson lesson = lessonRepository.findById(lessonId)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tồn tại bài học có id " +  lessonId));
+        Course course = courseRepository.findByIdAndIsDeletedFalse(lesson.getCourse().getId())
+                .orElseThrow(() -> new ResourceNotFoundException("Không tồn tại bài học có id " + lessonId));
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        CustomUserDetails customUserDetails = (CustomUserDetails) auth.getPrincipal();
+        User user = customUserDetails.getUser();
+        if (user.getRole() == RoleStatus.STUDENT) {
+            if (course.getStatus() == CourseStatus.PUBLISHED) {
+                if (!lesson.getIsPublished()) {
+                    throw new ResourceNotFoundException("Không tồn tại bài học có id " + lessonId);
+                }
+            }
+            else if (course.getStatus() == CourseStatus.ARCHIVED) {
+                if (!enrollmentRepository.existsByStudentIdAndCourseId(user.getId(), course.getId())) {
+                    throw new ResourceNotFoundException("Không tồn tại bài học có id " + lessonId);
+                }
+                else {
+                    if (!lesson.getIsPublished()) {
+                        throw new ResourceNotFoundException("Không tồn tại bài học có id " + lessonId);
+                    }
+                }
+            }
+            else {
+                throw new ResourceNotFoundException("Không tồn tại bài học có id " + lessonId);
+            }
+        }
+        else if (user.getRole() == RoleStatus.TEACHER) {
+            if (course.getStatus() == CourseStatus.DRAFT) {
+                throw new ResourceNotFoundException("Không tồn tại bài học có id " + lessonId);
+            }
+            else if (course.getStatus() == CourseStatus.ARCHIVED) {
+                if (!course.getTeacher().getId().equals(user.getId())) {
+                    throw new ResourceNotFoundException("Không tồn tại bài học có id " + lessonId);
+                }
+            }
+        }
+        return ContentPreviewResponse.builder()
+                .courseId(course.getId())
+                .courseName(course.getTitle())
+                .lessonName(lesson.getTitle())
+                .textContent(lesson.getTextContent())
+                .build();
     }
 }

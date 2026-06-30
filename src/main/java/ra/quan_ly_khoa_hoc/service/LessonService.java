@@ -4,6 +4,7 @@ import org.apache.coyote.BadRequestException;
 import ra.quan_ly_khoa_hoc.model.dto.request.CreateLessonRequest;
 import ra.quan_ly_khoa_hoc.model.dto.request.UpdateLessonPublishRequest;
 import ra.quan_ly_khoa_hoc.model.dto.request.UpdateLessonRequest;
+import ra.quan_ly_khoa_hoc.model.dto.response.ContentPreviewResponse;
 import ra.quan_ly_khoa_hoc.model.dto.response.LessonResponse;
 
 import java.util.List;
@@ -15,4 +16,5 @@ public interface LessonService {
     LessonResponse updateLesson(Integer lessonId, UpdateLessonRequest updateLessonRequest);
     LessonResponse updateLessonPublish(Integer lessonId, UpdateLessonPublishRequest updateLessonPublishRequest);
     void deleteLesson(Integer lessonId);
+    ContentPreviewResponse getContentPreview(Integer lessonId);
 }

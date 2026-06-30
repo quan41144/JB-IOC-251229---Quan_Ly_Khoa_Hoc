@@ -22,6 +22,7 @@ import ra.quan_ly_khoa_hoc.repository.UserRepository;
 import ra.quan_ly_khoa_hoc.security.user_detail.CustomUserDetails;
 import ra.quan_ly_khoa_hoc.service.CourseService;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
@@ -210,6 +211,7 @@ public class CourseServiceImpl implements CourseService {
         if (updateCourseRequest.getDuration() != null) {
             course.setDuration(updateCourseRequest.getDuration());
         }
+        course.setUpdatedAt(LocalDateTime.now());
         Course savedCourse = courseRepository.save(course);
         return CourseResponse.builder()
                 .courseId(savedCourse.getId())
@@ -238,6 +240,7 @@ public class CourseServiceImpl implements CourseService {
             throw new BadRequestException("Không được thay đổi trạng thái của khóa học đang có học sinh học trở thành trạng thái bản nháp!");
         }
         course.setStatus(updateCourseStatusRequest.getStatus());
+        course.setUpdatedAt(LocalDateTime.now());
         Course savedCourse = courseRepository.save(course);
         return CourseResponse.builder()
                 .courseId(savedCourse.getId())

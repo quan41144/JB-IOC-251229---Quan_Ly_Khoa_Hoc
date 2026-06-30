@@ -58,4 +58,14 @@ public class LessonController {
                 LocalDateTime.now()
         ), HttpStatus.OK);
     }
+    @GetMapping("/{lesson_id}/content_preview")
+    public ResponseEntity<ApiResponse<?>> getContentPreview(@PathVariable("lesson_id") Integer lessonId) {
+        return new ResponseEntity<>(new ApiResponse<>(
+                true,
+                "Lấy nội dung xem trước của bài học thành công!",
+                lessonService.getContentPreview(lessonId),
+                null,
+                LocalDateTime.now()
+        ), HttpStatus.OK);
+    }
 }
