@@ -117,4 +117,14 @@ public class GlobalExceptionHandler {
                 LocalDateTime.now()
         ), HttpStatus.BAD_REQUEST);
     }
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<ApiResponse<?>> handleException(Exception ex) {
+        return new ResponseEntity<>(new ApiResponse<>(
+                false,
+                "Lỗi Server!",
+                null,
+                ex.getMessage(),
+                LocalDateTime.now()
+        ), HttpStatus.INTERNAL_SERVER_ERROR);
+    }
 }
