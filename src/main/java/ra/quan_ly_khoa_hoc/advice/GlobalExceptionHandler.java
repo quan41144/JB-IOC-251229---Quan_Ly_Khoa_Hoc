@@ -11,6 +11,7 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
 import ra.quan_ly_khoa_hoc.exception.AccessDeniedException;
 import ra.quan_ly_khoa_hoc.exception.BadRequestException;
 import ra.quan_ly_khoa_hoc.exception.ConflictException;
@@ -112,6 +113,16 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(new ApiResponse<>(
                 false,
                 "Định dạng dữ liệu không hợp lệ!",
+                null,
+                ex.getMessage(),
+                LocalDateTime.now()
+        ), HttpStatus.BAD_REQUEST);
+    }
+    @ExceptionHandler(MaxUploadSizeExceededException.class)
+    public ResponseEntity<ApiResponse<?>> handleMaxUploadSizeExceededException(MaxUploadSizeExceededException ex) {
+        return new ResponseEntity<>(new ApiResponse<>(
+                false,
+                "file vượt quá kích thước quy định!",
                 null,
                 ex.getMessage(),
                 LocalDateTime.now()
